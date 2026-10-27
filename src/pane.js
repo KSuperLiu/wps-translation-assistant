@@ -1,13 +1,16 @@
 import "./style.css";
 import "./mapping.css";
+import "./updates.css";
 import { WpsHost } from "./wps-host.js";
 import { discoverLanguages, parseWorkbook, statistics, filterUnits, selectedUnit, adoptionProblem } from "./model.js";
 import { applySuggestions, undoSuggestions } from "./operations.js";
 import { isBlank } from "./validation.js";
 import { loadProfiles, setupMapping } from "./mapping-ui.js";
+import { setupUpdateControls } from "./update-ui.js";
 
 const $ = id => document.getElementById(id);
 const host = new WpsHost(window.Application);
+setupUpdateControls({ version: __APP_VERSION__, app: host.app });
 let savedProfiles = [];
 try { savedProfiles = loadProfiles(window.localStorage); } catch { /* 当前环境不提供持久存储。 */ }
 const state = { snapshot: null, model: { units: [], diagnostics: [] }, language: "", selected: null,

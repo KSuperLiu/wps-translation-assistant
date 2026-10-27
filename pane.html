@@ -5,6 +5,12 @@
 <body>
   <main>
     <header><div><span class="eyebrow">LOCALIZATION · 01</span><h1>翻译助手</h1></div><span class="local-badge">本地处理</span></header>
+    <section class="update-panel" aria-label="版本与更新">
+      <div class="update-bar"><span id="current-version">当前版本</span><button id="check-updates" class="text-button">检查更新</button></div>
+      <p id="update-status" role="status" aria-live="polite" hidden></p>
+      <button id="open-update-site" class="text-button" hidden>打开更新网站 ↗</button>
+      <p id="update-link-fallback" hidden><a href="https://ksuperliu.github.io/wps-translation-assistant/" target="_blank" rel="noopener noreferrer">https://ksuperliu.github.io/wps-translation-assistant/</a></p>
+    </section>
     <p id="book" class="book">打开翻译工作簿，开始检查。</p>
     <div class="toolbar"><label>目标语言<select id="language" aria-label="目标语言"><option value="">自动识别</option></select></label><button id="scan" class="primary">识别并检查全表</button></div>
     <div id="message" role="status" aria-live="polite">准备就绪</div>
