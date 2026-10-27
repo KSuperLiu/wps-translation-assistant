@@ -37,9 +37,7 @@ try {
     } else if (response.status !== 404) throw new Error('无法核对线上版本：HTTP ' + response.status);
   }
   fs.cpSync(path.join(root, 'website'), output, { recursive: true });
-  fs.mkdirSync(path.join(output, 'vendor'));
-  fs.copyFileSync(require.resolve('wpsjs-rpc-sdk-new'), path.join(output, 'vendor', 'wpsjsrpcsdk.js'));
-  fs.copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(output, 'vendor', 'THIRD_PARTY_NOTICES.md'));
+  fs.copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(output, 'THIRD_PARTY_NOTICES.md'));
   fs.writeFileSync(path.join(output, 'latest.json'), JSON.stringify(manifest, null, 2) + '\n');
   fs.writeFileSync(path.join(output, '.nojekyll'), '');
   fs.writeFileSync(path.join(output, 'publish.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./"><title>WPS 翻译助手</title><a href="./">前往安装与更新页面</a>');

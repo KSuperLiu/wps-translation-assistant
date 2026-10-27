@@ -20,7 +20,6 @@
 	},
 	"devDependencies": {
 		"vite": "7.3.7",
-		"wpsjs": "2.2.3",
-		"wpsjs-rpc-sdk-new": "1.1.0"
+		"wpsjs": "2.2.3"
 	}
 }
