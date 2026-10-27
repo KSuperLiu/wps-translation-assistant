@@ -99,9 +99,27 @@ export function createInstallerController({ manifest, bridge, verify, startServi
         deploy: async (method, config) => {
           assertActive(signal);
           emit({ phase: remove ? 'removing' : 'installing', message: remove ? '正在卸载翻译助手…' : '正在安装翻译助手…' });
-          const result = await bridge.deploy(method, config);
-          acknowledged = result?.status === 0 && (result.response === 'OK' || result.response === '');
-          return result;
+          for (let attempt = 0; attempt < 8; attempt++) {
+            assertActive(signal);
+            try {
+              const result = await bridge.deploy(method, config);
+              acknowledged = result?.status === 0 && (result.response === 'OK' || result.response === '');
+              return result;
+            } catch (error) {
+              // 只重试 WPS 明确表示“尚未执行”的服务不可用回执，不重试超时或未知结果。
+              if (!error.needsService) throw error;
+              if (attempt === 7) throw new Error('WPS 安装服务仍未就绪，请重新打开 WPS 后再试。旧版本没有被预先卸载。');
+              emit({ phase: 'connecting', message: '正在唤醒 WPS 安装服务，请留意浏览器提示…' });
+              if (attempt === 0) startService();
+              await delay(700, signal); assertActive(signal);
+              if (await bridge.isRunning()) throw new Error('请保存并关闭 WPS 后，再点一次继续。');
+              await readState();
+              const now = installationState(state.entry, manifest);
+              if ((remove && !state.entry) || (!remove && !repair && now.kind === 'current')) return { status: 0, response: 'OK' };
+              if (!(remove ? now.canRemove : now.canInstall)) throw new Error('本机安装状态已变化，请重新检测后操作。');
+              emit({ phase: remove ? 'removing' : 'installing', message: remove ? '正在卸载翻译助手…' : '正在安装翻译助手…' });
+            }
+          }
         },
       });
       await readState();

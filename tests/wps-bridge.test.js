@@ -27,3 +27,11 @@ test('未知进程状态不能默认为已关闭，未确认的写操作保留 p
   await assert.rejects(createWpsBridge(async () => new Response('unknown')).connect());
   await assert.rejects(createWpsBridge(async () => { throw new Error('network'); }).deploy('enable', { name: 'WpsTranslationAssistant', addonType: 'et' }), error => error.pending === true);
 });
+
+test('WPS 明确的服务不可用回执可唤醒重试，未知 HTTP 错误仍视为结果待确认', async () => {
+  const config = { name: 'WpsTranslationAssistant', addonType: 'et' };
+  for (const body of ['Service Unavailable', JSON.stringify({ data: 'Subserver not available.' })]) {
+    await assert.rejects(createWpsBridge(async () => new Response(body, { status: 503 })).deploy('enable', config), error => error.needsService && !error.pending);
+  }
+  await assert.rejects(createWpsBridge(async () => new Response('unknown', { status: 500 })).deploy('enable', config), error => error.pending && !error.needsService);
+});

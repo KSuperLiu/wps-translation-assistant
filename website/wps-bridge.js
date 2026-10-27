@@ -7,12 +7,18 @@ export function createWpsBridge(fetcher = fetch) {
     try {
       const response = await fetcher(origin + endpoint, { method: 'POST', body,
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, credentials: 'omit', redirect: 'error', signal: controller.signal });
-      if (!response.ok) throw new Error('WPS 本机服务返回 HTTP ' + response.status);
+      if (!response.ok) {
+        const body = (await response.text()).trim();
+        let detail = body;
+        try { detail = JSON.parse(body).data || body; } catch { /* 兼容旧服务的纯文本回执。 */ }
+        const needsService = response.status === 503 && ['Service Unavailable', 'Service Unavailable.', 'Subserver not available.'].includes(detail);
+        throw Object.assign(new Error('WPS 本机服务返回 HTTP ' + response.status), { needsService });
+      }
       return await response.text();
     } catch (cause) {
-      const error = new Error(mutation ? '操作结果尚未确认。请等待后刷新页面检查状态，勿重复提交。'
+      const error = new Error(cause.needsService ? 'WPS 安装服务尚未就绪，请重新连接。' : mutation ? '操作结果尚未确认。请等待后刷新页面检查状态，勿重复提交。'
         : '未能连接 WPS 本机服务。请先点击“打开 WPS 连接服务”，再重新连接；若浏览器询问本机连接权限，请按组织规定处理。', { cause });
-      error.pending = mutation; throw error;
+      error.pending = mutation && !cause.needsService; error.needsService = !!cause.needsService; throw error;
     } finally { clearTimeout(timer); }
   }
   return {

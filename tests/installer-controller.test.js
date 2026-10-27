@@ -96,3 +96,17 @@ test('写入超时锁住重复提交；只读复查确认结果后才解除', as
   await controller.detect(); assert.equal(controller.getState().uncertain, true);
   data.entry = entry('1.2.2'); await controller.detect(); assert.equal(controller.getState().uncertain, false);
 });
+
+test('状态服务正常但安装子服务休眠时，自动唤醒后继续，超时回执不重复提交', async () => {
+  let attempts = 0;
+  const { controller, data } = fixture({ bridge: { deploy: async (method, config) => {
+    attempts++;
+    if (attempts === 1) throw Object.assign(new Error('sleeping'), { needsService: true });
+    data.writes.push(method); data.entry = config; return { status: 0, response: 'OK' };
+  } } });
+  await controller.install();
+  assert.equal(attempts, 2); assert.equal(data.launches, 1); assert.deepEqual(data.writes, ['enable']);
+  let unknownCalls = 0;
+  const unknown = fixture({ bridge: { deploy: async () => { unknownCalls++; throw Object.assign(new Error('unknown'), { pending: true }); } } });
+  await unknown.controller.install(); assert.equal(unknownCalls, 1); assert.equal(unknown.data.launches, 0);
+});
