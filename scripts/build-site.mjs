@@ -37,6 +37,13 @@ try {
     } else if (response.status !== 404) throw new Error('无法核对线上版本：HTTP ' + response.status);
   }
   fs.cpSync(path.join(root, 'website'), output, { recursive: true });
+  // Pages 静态资源有浏览器缓存。界面更新独立于插件版本，以内容哈希刷新入口与其模块依赖。
+  let appSource = fs.readFileSync(path.join(output, 'app.js'), 'utf8');
+  for (const module of ['install-model.js', 'wps-bridge.js']) appSource = appSource.replace('./' + module, './' + module + '?v=' + hash(fs.readFileSync(path.join(output, module))).slice(0, 12));
+  fs.writeFileSync(path.join(output, 'app.js'), appSource);
+  let html = fs.readFileSync(path.join(output, 'index.html'), 'utf8');
+  for (const file of ['app.js', 'style.css']) html = html.replace('./' + file, './' + file + '?v=' + hash(fs.readFileSync(path.join(output, file))).slice(0, 12));
+  fs.writeFileSync(path.join(output, 'index.html'), html);
   fs.copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(output, 'THIRD_PARTY_NOTICES.md'));
   fs.writeFileSync(path.join(output, 'latest.json'), JSON.stringify(manifest, null, 2) + '\n');
   fs.writeFileSync(path.join(output, '.nojekyll'), '');
