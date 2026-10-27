@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" onLoad="OnTranslationLoad">
+  <ribbon startFromScratch="false"><tabs>
+    <tab id="TranslationAssistantTab" label="翻译助手">
+      <group id="TranslationWorkspaceGroup" label="翻译面板">
+        <button id="TranslationOpen" label="打开助手" size="large"
+                getImage="OnTranslationGetImage" onAction="OnTranslationAction"
+                screentip="打开翻译助手侧栏"
+                supertip="查看当前条目的原文、旧译文、校验问题与 AI 建议。" />
+      </group>
+      <group id="TranslationQualityGroup" label="质量检查">
+        <button id="TranslationScan" label="检查全表" size="large"
+                getImage="OnTranslationGetImage" onAction="OnTranslationAction"
+                screentip="重新识别并检查整个工作簿"
+                supertip="识别现有翻译表，更新占位符、TMP 标签问题及翻译进度。" />
+        <button id="TranslationNext" label="下一条问题" size="large"
+                getImage="OnTranslationGetImage" onAction="OnTranslationAction"
+                screentip="定位下一条未翻译或有问题的译文"
+                supertip="在当前工作表和搜索范围内，循环定位未翻译或校验错误的条目。" />
+      </group>
+      <group id="TranslationAdoptionGroup" label="译文采用">
+        <button id="TranslationAdopt" label="采用 AI 建议" size="large"
+                getImage="OnTranslationGetImage" onAction="OnTranslationAction"
+                screentip="采用当前条目的 AI 建议"
+                supertip="核对建议通过校验后，经确认写入当前条目的新译文单元格。" />
+      </group>
+    </tab>
+  </tabs></ribbon>
+</customUI>

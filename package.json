@@ -1,0 +1,26 @@
+{
+	"name": "WpsTranslationAssistant",
+	"version": "1.2.0",
+	"private": true,
+	"type": "module",
+	"description": "WPS 表格翻译助手：翻译表识别、校验、问题定位、进度及 AI 建议采用",
+	"addonType": "et",
+	"scripts": {
+		"dev": "vite --port 3890",
+		"debug": "wpsjs debug",
+		"build": "vite build",
+		"test": "node --test tests/*.test.js",
+		"publish": "wpsjs publish",
+		"package": "vite build && node scripts/package-release.mjs",
+		"site": "vite build && node scripts/build-site.mjs",
+		"installer": "vite build && powershell.exe -NoProfile -File installer/Build-Installer.ps1 -BuildDirectory ../../work/native-installer-build"
+	},
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"devDependencies": {
+		"vite": "7.3.7",
+		"wpsjs": "2.2.3",
+		"wpsjs-rpc-sdk-new": "1.1.0"
+	}
+}

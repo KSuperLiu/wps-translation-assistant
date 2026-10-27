@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>翻译助手</title>
+<script type="module" src="./src/pane.js"></script></head>
+<body>
+  <main>
+    <header><div><span class="eyebrow">LOCALIZATION · 01</span><h1>翻译助手</h1></div><span class="local-badge">本地处理</span></header>
+    <p id="book" class="book">打开翻译工作簿，开始检查。</p>
+    <div class="toolbar"><label>目标语言<select id="language" aria-label="目标语言"><option value="">自动识别</option></select></label><button id="scan" class="primary">识别并检查全表</button></div>
+    <div id="message" role="status" aria-live="polite">准备就绪</div>
+    <section class="stats" aria-label="全工作簿进度">
+      <div><strong id="translated">0</strong><span>已填写</span></div><div><strong id="untranslated">0</strong><span>未翻译</span></div><div><strong id="errors">0</strong><span>校验问题条目</span></div>
+    </section>
+    <div class="progress-label"><span id="total">全工作簿 · 0 条</span><strong id="percent">0%</strong></div><progress id="progress" max="100" value="0"></progress>
+    <details id="diagnostic-box" hidden><summary id="diagnostic-count">识别提示</summary><ul id="diagnostics"></ul></details>
+    <details id="mapping-box" class="mapping-box">
+      <summary>识别设置 · 特殊表头配置一次，后续复用</summary>
+      <p class="muted">自动识别有歧义时，在这里指定列。保存后只处理已配置的字段，不会修改表头；配置按表头结构复用，不保存译文。</p>
+      <label class="mapping-label">工作表<select id="mapping-sheet" aria-label="映射工作表"></select></label>
+      <p id="mapping-status" class="muted"></p>
+      <div class="mapping-grid">
+        <label>表头行<input id="mapping-header" type="number" min="1" value="1"></label>
+        <label>首条数据行<input id="mapping-data" type="number" min="2" value="2"></label>
+      </div>
+      <label class="mapping-label">目标语种<input id="mapping-language" placeholder="如 FR、pt-BR、Korean"></label>
+      <label class="mapping-label">字段名称<input id="mapping-field" placeholder="例如 Name、Description"></label>
+      <div class="mapping-grid">
+        <label>Key 列<select id="mapping-key"></select></label>
+        <label>原文列<select id="mapping-source"></select></label>
+        <label>新译文列<select id="mapping-target"></select></label>
+        <label>旧译文列（可选）<select id="mapping-old"></select></label>
+      </div>
+      <label class="mapping-label">AI 建议列（可选）<select id="mapping-ai"></select></label>
+      <div id="mapping-entries"></div>
+      <button id="mapping-save" class="full">保存 / 添加字段映射</button>
+      <button id="mapping-reset" class="text-button full">清除本结构的配置，恢复自动识别</button>
+    </details>
+    <section class="current-section">
+      <div class="section-heading"><h2>当前条目</h2><button id="locate" class="text-button" disabled>定位译文</button></div>
+      <p id="current-meta" class="muted">在表格中选中一条译文，或点击下方列表。</p>
+      <p id="current-key" class="key"></p>
+      <div id="current-content" hidden>
+        <label class="content-label">原文</label><pre id="source"></pre>
+        <details><summary>旧译文</summary><pre id="old"></pre></details>
+        <label class="content-label">当前译文</label><pre id="target"></pre>
+        <div id="current-errors" class="problem-text"></div>
+        <label class="content-label">AI 建议</label><pre id="ai" class="ai-text"></pre>
+        <div id="ai-errors" class="problem-text"></div>
+        <button id="adopt" class="primary full" disabled>采用当前 AI 建议</button>
+      </div>
+    </section>
+    <section class="list-section">
+      <div class="section-heading"><h2>条目与问题</h2><button id="next" class="text-button" disabled>下一条问题 →</button></div>
+      <div class="filters"><select id="sheet" aria-label="工作表"><option value="">全部工作表</option></select><select id="filter" aria-label="条目筛选"><option value="all">全部条目</option><option value="issues">校验问题</option><option value="untranslated">未翻译</option><option value="ai">有不同的 AI 建议</option></select></div>
+      <input id="search" type="search" placeholder="搜索 Key、原文或译文" aria-label="搜索条目">
+      <p id="list-count" class="muted">0 条</p><div id="list"></div>
+      <div class="pagination"><button id="previous-page" disabled>上一页</button><span id="page">0 / 0</span><button id="next-page" disabled>下一页</button></div>
+      <button id="batch" class="full" disabled>用合格 AI 建议填充筛选内的空白译文</button>
+      <button id="undo" class="text-button full" disabled>撤销最近一次 AI 采用</button>
+    </section>
+    <footer>直接在表格中编辑译文，提交编辑后自动检查。<br>“已填写”不代表校验通过；请用 WPS 保存或另存任务副本。</footer>
+  </main>
+</body></html>

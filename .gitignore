@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.debugTemp/
+wps-addon-build/
+wps-addon-publish/
+site-dist/
+release/
+work/
+*.log
+.env
+.env.*
+!.env.example
