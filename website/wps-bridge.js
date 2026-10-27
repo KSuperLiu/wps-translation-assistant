@@ -2,8 +2,8 @@
 // HTTP 回环服务由 WPS 自带，不启动本项目服务器，不绕过 TLS 证书验证。
 export function createWpsBridge(fetcher = fetch) {
   const origin = 'http://127.0.0.1:58890';
-  async function request(endpoint, body, mutation = false) {
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), mutation ? 90_000 : 8_000);
+  async function request(endpoint, body, mutation = false, timeoutMs = 8_000) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), mutation ? 90_000 : timeoutMs);
     try {
       const response = await fetcher(origin + endpoint, { method: 'POST', body,
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, credentials: 'omit', redirect: 'error', signal: controller.signal });
@@ -16,8 +16,8 @@ export function createWpsBridge(fetcher = fetch) {
     } finally { clearTimeout(timer); }
   }
   return {
-    async connect() {
-      const version = (await request('/version', '{}')).trim();
+    async connect({ timeoutMs = 8_000 } = {}) {
+      const version = (await request('/version', '{}', false, timeoutMs)).trim();
       if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('WPS 本机服务版本无法确认，请升级 WPS 后重试。');
     },
     async getAllConfig() { return { status: 0, response: await request('/publishlist', '{}') }; },

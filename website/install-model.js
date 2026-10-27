@@ -61,7 +61,7 @@ export function checkDeploymentResult(result) {
 }
 
 export async function changeInstallation({ manifest, entry, remove, confirmed, isRunning, verify, deploy }) {
-  if (!confirmed) throw new Error('请先保存并关闭 WPS 文档，勾选下方确认项。');
+  if (!confirmed) throw new Error('请先确认安装或卸载操作。');
   const state = installationState(entry, manifest);
   if (!(remove ? state.canRemove : state.canInstall)) throw new Error('当前安装来源或版本不允许此操作，请按页面提示处理。');
   if (await isRunning()) throw new Error('WPS 表格仍在运行，请保存工作并正常退出后重试。');

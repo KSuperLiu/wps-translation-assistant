@@ -2,31 +2,32 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="WPS 翻译助手官方项目安装页面：在浏览器中安装、更新和卸载，继续在 WPS 表格中完成翻译。">
+  <meta name="description" content="WPS 翻译助手安装与更新：自动检测本机版本，一键安装或更新。">
   <title>WPS 翻译助手 · 安装与更新</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
-  <div class="shell">
-    <nav><a class="brand" href="./"><img src="./icon.svg" alt="">WPS 翻译助手</a><a href="https://github.com/KSuperLiu/wps-translation-assistant" target="_blank" rel="noopener">GitHub 源码 ↗</a></nav>
-    <main>
-      <section class="hero"><span class="eyebrow">WINDOWS · WPS SPREADSHEETS</span><h1>在熟悉的表格里，<br>把翻译检查做好。</h1><p>识别翻译表、检查占位符与 TMP 标签，定位问题、统计进度、采用表内 AI 建议。安装后继续在 WPS 中工作。</p><div class="pills"><span>不需要 Node.js</span><span>不用运行 EXE</span><span>安装后可离线使用</span></div></section>
-      <section class="installer" aria-labelledby="install-title">
-        <div class="card-head"><div><span class="eyebrow">安装与更新</span><h2 id="install-title">连接你的 WPS</h2></div><span id="latest" class="version">读取版本…</span></div>
-        <dl><div><dt>本机状态</dt><dd id="local">尚未连接</dd></div><div><dt>适用环境</dt><dd>Windows WPS 表格</dd></div></dl>
-        <p id="message" class="message" role="status" aria-live="polite">点击连接后，浏览器可能询问是否打开 WPS 或访问本机服务，请按提示确认。</p>
-        <div id="migration" class="notice" hidden><strong>先移除旧版 Windows 安装器入口</strong><p>检测到此前 EXE 安装的版本。请在 Windows“设置 → 应用”中卸载“WPS 翻译助手”，然后回到此页重新连接并安装。以后都可以在这里更新，避免两种管理方式冲突。</p></div>
-        <label class="confirmation"><input id="closed" type="checkbox">我已保存工作，并正常关闭 WPS 文档窗口</label>
-        <div class="actions"><button id="connect" class="secondary" disabled>连接本机 WPS</button><button id="install" class="primary" disabled>安装翻译助手</button></div>
-        <p class="service-link"><a href="ksoWPSCloudSvr://start=RelayHttpServer">打开 WPS 连接服务</a> · 连接失败时先点这里，再重试</p>
-        <div class="remove-row"><span>安装或更新完成后，请重新打开 WPS。</span><button id="remove" class="text-button" disabled>卸载插件</button></div>
-        <details><summary>连接失败或没有看到插件？</summary><p>请使用安装了 WPS 的 Windows 电脑，确认该 WPS 版本支持 JavaScript 加载项。若浏览器或企业策略阻止本机连接，请按组织规定联系管理员；此网页不会修改安全设置。</p><p>安装后重开 WPS，点击“翻译助手 → 打开助手”。仅新建工作簿不一定会重新加载功能区。网站超时不代表操作已取消，请等待后重新检查本机状态。</p><p>网页卸载使用 WPS 的停用接口；插件文件及设置缓存由 WPS 管理。EXE 版请从 Windows 应用列表卸载。</p></details>
-      </section>
-      <section class="steps"><article><span>01</span><h3>连接并安装</h3><p>允许网页连接本机 WPS，点击安装，由 WPS 下载并配置插件资源。</p></article><article><span>02</span><h3>回到 WPS 翻译</h3><p>打开翻译助手侧栏，检查现有工作簿。表格内容在本机处理。</p></article><article><span>03</span><h3>同一网址更新</h3><p>以后回到本页连接 WPS、检查版本，再点击更新。无需另装开发工具。</p></article></section>
-      <section class="notes"><h2>你仍然掌握表格</h2><p>识别和检查不修改单元格；采用 AI 建议前需要确认，写入后由你在 WPS 中保存。AI 建议来自表内已有列，本版不会调用在线翻译模型。</p><p>本网站仅用于分发插件，不接收翻译工作簿。网站访问记录受 GitHub Pages 的托管政策约束。</p></section>
-    </main>
-    <footer><span>WPS 翻译助手 · 独立社区项目，非 WPS 官方产品</span><a href="./更新说明.html">更新说明</a><a href="https://github.com/KSuperLiu/wps-translation-assistant/issues" target="_blank" rel="noopener">反馈问题 ↗</a></footer>
-  </div>
+  <main class="shell">
+    <header><img src="./icon.svg" alt="" width="48" height="48"><h1>WPS 翻译助手</h1><p>识别翻译表、检查格式，继续在 WPS 中工作。</p></header>
+    <section class="installer" aria-label="安装与更新">
+      <div class="version-row"><span id="local">正在检测本机 WPS…</span><span id="latest">读取版本…</span></div>
+      <p id="message" role="status" aria-live="polite">正在自动准备安装…</p>
+      <button id="primary" class="primary" disabled>正在准备…</button>
+      <button id="cancel" class="text-button cancel" hidden>取消等待</button>
+      <p class="hint">操作前请保存工作。浏览器询问是否打开 WPS 时，请选择允许。</p>
+      <div id="migration" class="notice" hidden><strong>先移除旧版安装入口</strong><p>你之前使用 EXE 安装过。请从 Windows“设置 → 应用”卸载旧版一次，再回到这里安装，以后都可在此更新。</p></div>
+      <details>
+        <summary>更多选项与帮助</summary>
+        <div class="extra-actions"><button id="refresh" class="text-button" disabled>重新检测</button><button id="repair" class="text-button" disabled>重新安装</button><button id="remove" class="text-button" disabled>卸载插件</button></div>
+        <p>连接失败时，可<a href="ksoWPSCloudSvr://start=RelayHttpServer">手动打开 WPS</a>后重新检测。需要 Windows WPS 支持 JavaScript 加载项，并允许浏览器连接本机 WPS。</p>
+        <p>安装后重新打开 WPS，点击“翻译助手 → 打开助手”。安装后可离线使用；网页卸载使用 WPS 停用接口，资源与设置缓存由 WPS 管理。</p>
+        <p>若操作结果尚未确认，请等待后重新检测。企业策略限制请联系管理员。</p>
+      </details>
+    </section>
+    <p class="footnote">Windows WPS 表格 · 无需 Node.js 或 EXE · 翻译表在本机处理</p>
+    <footer><a href="./更新说明.html">更新说明</a><a href="https://github.com/KSuperLiu/wps-translation-assistant" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/KSuperLiu/wps-translation-assistant/issues" target="_blank" rel="noopener">问题反馈</a></footer>
+    <p class="disclaimer">独立社区项目，非 WPS 官方产品。网站由 GitHub Pages 托管。</p>
+  </main>
 </body>
 </html>
