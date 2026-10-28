@@ -83,7 +83,7 @@ test("人工草稿不写公式、合并格和受保护单元格，空原文不�
     assert.throws(() => applyDraft(s.host, s.bookKey, s.units[0], s.units, "Get {0}"));
   }
   const s = setup(), u = { ...s.units[0], source: "" };
-  assert.throws(() => applyDraft(s.host, s.bookKey, u, [u], "Guess"), /原文为空/);
+  assert.doesNotThrow(() => applyDraft(s.host, s.bookKey, u, [u], "Guess"));
 });
 
 test("采用只写目标译文，保留原文、旧译文、AI 列和单元格格式", async () => {

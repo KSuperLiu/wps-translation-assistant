@@ -52,7 +52,7 @@ try {
   fs.writeFileSync(path.join(output, 'latest.json'), JSON.stringify(manifest, null, 2) + '\n');
   fs.writeFileSync(path.join(output, '.nojekyll'), '');
   fs.writeFileSync(path.join(output, 'publish.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./"><title>WPS 翻译助手</title><a href="./">前往安装与更新页面</a>');
-  fs.writeFileSync(path.join(output, '更新说明.html'), '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="./style.css"><title>更新说明 · WPS 翻译助手</title><main class="shell" style="display:block;padding-top:40px"><a href="./">← 返回安装页面</a><h1>v' + pkg.version + '</h1><p>点击“采用 AI 并写入”，即可将合格的表内 AI 建议直接填入当前译文。覆盖已有译文或不同的未写入草稿前会确认；也可先载入草稿编辑。</p><p>写入后仍需用 WPS 保存。AI 建议来自表内，插件不会自动调用在线 AI。</p><p>更多说明见 <a href="https://github.com/KSuperLiu/wps-translation-assistant">项目 README</a>。</p></main></html>');
+  fs.writeFileSync(path.join(output, '更新说明.html'), '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="./style.css"><title>更新说明 · WPS 翻译助手</title><main class="shell" style="display:block;padding-top:40px"><a href="./">← 返回安装页面</a><h1>v' + pkg.version + '</h1><p>允许原文和译文为空，不再将空原文标为需核实，也不因空译文阻止交付检查通过。</p><p>点击“采用 AI 并写入”可以直接填入表内 AI 建议；写入后仍需用 WPS 保存。</p><p>更多说明见 <a href="https://github.com/KSuperLiu/wps-translation-assistant">项目 README</a>。</p></main></html>');
   console.log('网站资源已生成：' + output);
   console.log('插件包：' + manifest.package + ' (' + manifest.size + ' bytes) SHA-256: ' + manifest.sha256);
 } finally {

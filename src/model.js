@@ -26,7 +26,7 @@ export function parseWorkbook(sheets, language, profiles = []) {
       const explicitKey = keyCol ? readCell(sheet, row, keyCol).trim() : "";
       const key = explicitKey || (baseKey && !isBlank(source) ? baseKey + "/" + field : "");
       if (!key) { if (!isBlank(source)) missingKeys++; continue; }
-      // 有完整 Key 的空原文仍是任务异常；配置表中无内容且无字段 Key 的格子不制造虚假任务。
+      // 有完整 Key 的记录保留；没有字段 Key 的空配置格不制造虚假任务。
       const value = readCell(sheet, row, targetCol), ai = aiCol ? readCell(sheet, row, aiCol) : "";
       const coords = roles.map(c => [headerRow, c]);
       if (fieldRow) coords.push(...roles.map(c => [fieldRow, c]));
@@ -45,7 +45,7 @@ export function parseWorkbook(sheets, language, profiles = []) {
         targetCol, sourceCol, aiCol, groupStart: Math.min(group.groupStart, group.groupEnd), groupEnd: Math.max(group.groupStart, group.groupEnd),
         cell: address(row, targetCol), sourceCell: address(row, sourceCol), aiCell: aiCol ? address(row, aiCol) : null,
         referenceLanguages: group.referenceLanguages, guards,
-        untranslated: isBlank(value), errors: isBlank(value) ? [] : validateText(source, value), aiErrors: isBlank(ai) ? [] : validateText(source, ai),
+        untranslated: isBlank(value), errors: isBlank(value) || isBlank(source) ? [] : validateText(source, value), aiErrors: isBlank(ai) || isBlank(source) ? [] : validateText(source, ai),
       });
     }
     if (missingKeys) diagnostics.push(group.sheet + " · " + field + "：有 " + missingKeys + " 条非空原文缺少 Key，未计入任务，请核实。");
@@ -86,7 +86,6 @@ export function sameReviewedUnit(a, b) {
 
 export function adoptionProblem(unit) {
   if (!unit) return "没有选中翻译条目。";
-  if (isBlank(unit.source)) return "原文为空，请先向需求方核实。";
   if (unit.duplicate) return "LanguageKey 重复，请先处理重复项。";
   if (isBlank(unit.ai)) return "这一条没有 AI 建议。";
   if (unit.ai === unit.target) return "当前译文与 AI 建议相同，无需采用。";

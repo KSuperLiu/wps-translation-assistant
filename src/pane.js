@@ -49,7 +49,7 @@ function updateActions() {
   $("begin").disabled = state.busy || !state.language || !state.model.units.length;
   $("adopt").disabled = state.busy || !!adoptionProblem(u) || stale;
   $("adopt").textContent = u && !isBlank(u.ai) && u.ai === u.target ? "AI 建议已写入" : "采用 AI 并写入";
-  $("load-ai").disabled = state.busy || !u || !!draftProblem(u, u?.ai || "") || stale;
+  $("load-ai").disabled = state.busy || !u || !u.ai?.trim() || !!draftProblem(u, u.ai) || stale;
   $("use-old").disabled = state.busy || !u || isBlank(u.old) || isBlank(u.source) || stale;
   $("target").disabled = state.busy || !u || isBlank(u.source) || stale;
   $("commit").disabled = state.busy || !draft || stale || !!draftProblem(u, draft?.value || "");
@@ -95,14 +95,14 @@ function render() {
   const s = workflowSummary(state.model.units, state.model.diagnostics);
   $("book").textContent = state.snapshot?.name || "请打开翻译工作簿。";
   $("receive-summary").textContent = s.total ? state.language + " · " + s.sheets + " 张翻译工作表 · " + s.total.toLocaleString() + " 条记录" : "请选择目标语言，或展开“更多 → 识别设置”核实列关系。";
-  rows($("task-breakdown"), [["原文变更，需修订", s.revision], ["没有旧译文，需补译", s.translation], ...(s.review ? [["有旧译文，可复核沿用", s.review]] : []), ["原文为空，需核实", s.unclear]]);
+  rows($("task-breakdown"), [["原文变更，需修订", s.revision], ["没有旧译文，需补译", s.translation], ...(s.review ? [["有旧译文，可复核沿用", s.review]] : [])]);
   const targets = [...new Set(state.model.units.map(u => columnName(u.targetCol)))];
   $("target-guide").textContent = s.total ? "只填写 " + state.language + " 最终译文列（本表涉及 " + targets.join("、") + " 列），原文、旧译文、AI 和 Key 保持原有用途。表内提供 " + s.ai + " 条 AI 建议。" : "列关系确认后才允许写入。";
-  $("receive-warning").hidden = !s.unclear && !s.diagnostics;
-  $("receive-warning").textContent = [s.unclear ? s.unclear + " 条原文为空，需向需求方核实。" : "", s.diagnostics ? s.diagnostics + " 项识别提示，跳过内容未计入任务，请核实下方识别提示。" : ""].filter(Boolean).join(" ");
+  $("receive-warning").hidden = !s.diagnostics;
+  $("receive-warning").textContent = s.diagnostics ? s.diagnostics + " 项识别提示，跳过内容未计入任务，请核实下方识别提示。" : "";
   $("begin").textContent = s.filled ? "继续翻译" : "开始翻译";
   $("work-language").textContent = state.language + " · 全工作簿 " + s.total.toLocaleString() + " 条";
-  $("work-progress").textContent = "已填写 " + s.filled + " · 待填写 " + s.unfilled + " · 问题 " + s.errors + " · 需核实 " + s.unclear;
+  $("work-progress").textContent = "已填写 " + s.filled + " · 空译文 " + s.unfilled + " · 问题 " + s.errors;
   $("progress").value = s.total ? s.filled / s.total * 100 : 0;
   const diagnostics = state.model.diagnostics;
   $("diagnostic-box").hidden = !diagnostics.length;
@@ -117,7 +117,7 @@ function renderCurrent() {
   $("current-meta").textContent = u ? u.sheet + " · " + u.cell + " · " + u.field : "在表格中选中译文，或点击下一条待处理。";
   if (!u) return;
   $("current-kind").textContent = taskKind(u);
-  $("source").textContent = u.source || "（原文为空，请向需求方核实）";
+  $("source").textContent = u.source || "（空）";
   $("old-source").textContent = u.oldSource || "";
   $("source-change").hidden = !u.oldSource || u.oldSource === u.source;
   const diff = sourceDifference(u.oldSource, u.source), node = $("source-diff");
@@ -161,11 +161,11 @@ function renderList() {
 }
 function renderDelivery() {
   const s = workflowSummary(state.model.units, state.model.diagnostics), drafts = draftCount();
-  $("delivery-status").textContent = !state.language || !s.total ? "尚未识别有效的翻译任务，不能确认交付范围。" : state.busy || state.fullRefresh || state.dirty.size ? "正在更新检查结果，请等待。" : s.ready && !drafts ? "当前目标语言未发现未填写或格式问题。请人工复核含义、术语后另存交付。" : "还有待处理事项，请逐项核实后再交付。";
-  rows($("delivery-counts"), [["待填写（不含空原文）", s.unfilled], ["格式或 Key 问题条目", s.errors], ["原文为空，需核实", s.unclear], ["侧栏未写入草稿", drafts]]);
+  $("delivery-status").textContent = !state.language || !s.total ? "尚未识别有效的翻译任务，不能确认交付范围。" : state.busy || state.fullRefresh || state.dirty.size ? "正在更新检查结果，请等待。" : s.ready && !drafts ? "当前目标语言未发现格式或 Key 问题。请人工复核含义、术语后另存交付。" : "还有待处理事项，请逐项核实后再交付。";
+  rows($("delivery-counts"), [["格式或 Key 问题条目", s.errors], ["侧栏未写入草稿", drafts]]);
   $("delivery-time").textContent = state.checkedAt ? "最近检查 " + new Date(state.checkedAt).toLocaleTimeString() + " · " + s.sheets + " 张翻译工作表 · " + s.total + " 条 · " + s.diagnostics + " 项识别提示" : "尚未完成全表检查。";
   const list = $("delivery-list"); list.replaceChildren();
-  for (const [label, count, status] of [["待填写", s.unfilled, "pending"], ["格式或 Key 问题", s.errors, "issues"], ["原文缺失", s.unclear, "unclear"]]) {
+  for (const [label, count, status] of [["格式或 Key 问题", s.errors, "issues"]]) {
     if (!count) continue;
     const row = document.createElement("div"), text = document.createElement("span"), b = document.createElement("button");
     row.className = "report-item"; text.textContent = label + " · " + count + " 条"; b.textContent = "去处理"; b.disabled = state.busy;
@@ -244,9 +244,9 @@ async function scan(full = true) {
 function schedule(full = false) { state.fullRefresh ||= full; state.checkedAt = null; if (state.stage === "delivery") renderDelivery(); clearTimeout(state.timer); state.timer = setTimeout(() => { if (!state.busy) scan(state.fullRefresh || !state.snapshot); }, 280); }
 function goNext(skip = false) {
   if (state.busy || !state.snapshot) return;
-  const u = nextPending(state.model.units, state.selected, { ...scope(), status: $("filter").value }, { skipUnclear: $("filter").value !== "unclear" });
+  const u = nextPending(state.model.units, state.selected, { ...scope(), status: $("filter").value });
   if (u) { setStage("work"); select(u, true); if (skip) message("已暂跳过，本条仍保留在待处理范围。侧栏草稿仅在本次会话保留。"); }
-  else { message("当前范围没有可继续填写的任务，请查看交付检查中的需核实项与识别提示。", "success"); if (!$("sheet").value && !$("search").value) setStage("delivery"); renderDelivery(); }
+  else { message("当前范围没有可继续填写的任务，请查看交付检查和识别提示。", "success"); if (!$("sheet").value && !$("search").value) setStage("delivery"); renderDelivery(); }
 }
 function journal(changes) { if (!changes.length) return; state.journal = changes; state.journalBook = state.snapshot.bookKey; state.journals.set(state.journalBook, changes); }
 async function commit() {
