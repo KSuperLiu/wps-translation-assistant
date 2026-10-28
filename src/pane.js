@@ -3,7 +3,7 @@ import "./mapping.css";
 import "./updates.css";
 import { WpsHost } from "./wps-host.js";
 import { discoverLanguages, parseWorkbook, selectedUnit, adoptionProblem, sameReviewedUnit, columnName } from "./model.js";
-import { applyDraft, applySuggestions, undoSuggestions } from "./operations.js";
+import { applyDraft, applyCurrentSuggestion, applySuggestions, undoSuggestions } from "./operations.js";
 import { isBlank } from "./validation.js";
 import { workflowSummary, workflowUnits, nextPending, taskKind, processingStatus, draftProblem, sourceDifference } from "./workflow.js";
 import { loadProfiles, setupMapping } from "./mapping-ui.js";
@@ -48,6 +48,8 @@ function updateActions() {
   const u = current(), draft = draftFor(u), stale = draft && !sameReviewedUnit(draft.reviewed, u);
   $("begin").disabled = state.busy || !state.language || !state.model.units.length;
   $("adopt").disabled = state.busy || !!adoptionProblem(u) || stale;
+  $("adopt").textContent = u && !isBlank(u.ai) && u.ai === u.target ? "AI 建议已写入" : "采用 AI 并写入";
+  $("load-ai").disabled = state.busy || !u || !!draftProblem(u, u?.ai || "") || stale;
   $("use-old").disabled = state.busy || !u || isBlank(u.old) || isBlank(u.source) || stale;
   $("target").disabled = state.busy || !u || isBlank(u.source) || stale;
   $("commit").disabled = state.busy || !draft || stale || !!draftProblem(u, draft?.value || "");
@@ -265,11 +267,33 @@ async function commit() {
 }
 function useReference(type) {
   const u = current(); if (state.busy || !u) return;
-  if (type === "ai" && adoptionProblem(u)) return message(adoptionProblem(u), "error");
+  if (type === "ai" && draftProblem(u, u.ai)) return message(draftProblem(u, u.ai), "error");
   const draft = draftFor(u); if (!sameReviewedUnit(draft.reviewed, u)) return message("表格已变化，请重新载入当前译文后核对。", "error");
   const value = type === "ai" ? u.ai : u.old;
   if (draft.value !== u.target && draft.value !== value && !window.confirm("当前条目有未写入草稿，是否用这份参考替换草稿？")) return;
   rememberDraft(value); renderCurrent(); message("已放入草稿，尚未写入表格。核对后点击“写入并下一条”。");
+}
+async function adoptCurrent() {
+  const u = current(), draft = draftFor(u);
+  if (state.busy || !u || !state.snapshot) return;
+  const problem = adoptionProblem(u);
+  if (problem) return message(problem, "error");
+  const key = state.snapshot.bookKey; busy(true); state.writing = true;
+  let result, failure = "";
+  try {
+    const fresh = await host.snapshot(v => message("采用前核对 · " + v));
+    const model = parseWorkbook(fresh.sheets, state.language, state.profiles);
+    result = await applyCurrentSuggestion(host, key, u, model.units, { draft,
+      confirm: ({ unit, discardDraft, overwriteExisting }) => window.confirm([
+        overwriteExisting ? "将替换 " + unit.sheet + "!" + unit.cell + " 的现有译文。" : "将填写 " + unit.sheet + "!" + unit.cell + "。",
+        discardDraft ? "本条有不同的未写入草稿，采用后将丢弃该草稿。" : "",
+        "是否采用表内 AI 建议并写入？可从“更多”撤销最近一次助手写入。",
+      ].filter(Boolean).join("\n")) });
+    if (result.changes.length) { journal(result.changes); bookDrafts().delete(draftKey(u)); }
+    failure = result.error;
+  } catch (e) { failure = e.message || String(e); }
+  finally { state.writing = false; busy(false); await scan(true); }
+  message(failure ? "未采用 AI。" + failure : result?.cancelled ? "已取消，译文和侧栏草稿均保留。" : "AI 建议已写入 " + u.sheet + "!" + u.cell + "。请核对并用 WPS 保存；点击下一条可继续。", failure ? "error" : "success");
 }
 async function batch() {
   if (state.busy || !state.snapshot) return;
@@ -306,7 +330,7 @@ $("previous-page").onclick = () => { state.page--; renderList(); }; $("next-page
 $("locate").onclick = () => { const u = current(); if (u) select(u, true); };
 $("next").onclick = () => goNext(); $("skip").onclick = () => goNext(true);
 $("target").oninput = () => rememberDraft($("target").value);
-$("adopt").onclick = () => useReference("ai"); $("use-old").onclick = () => useReference("old");
+$("adopt").onclick = adoptCurrent; $("load-ai").onclick = () => useReference("ai"); $("use-old").onclick = () => useReference("old");
 $("discard-draft").onclick = () => { const u = current(); if (u && window.confirm("丢弃本条侧栏草稿并读取表格当前译文？")) { bookDrafts().delete(draftKey(u)); renderCurrent(); updateActions(); } };
 $("commit").onclick = commit; $("batch").onclick = batch; $("undo").onclick = undo;
 const mapping = setupMapping({ state, getStorage: () => window.localStorage, message, changed: () => { if (!state.snapshot) return; state.journal = []; state.journals.delete(state.snapshot.bookKey); state.page = 0; state.selected = null; updateLanguages(discoverLanguages(state.snapshot.sheets, state.profiles)); rebuild(); } });
@@ -329,7 +353,7 @@ async function command(value) {
   if (!state.snapshot) await scan(true);
   if (data.action === "delivery" || data.action === "scan") return delivery();
   if (data.action === "next") { setStage("work"); goNext(); }
-  if (data.action === "adopt") { setStage("work"); followSelection(); useReference("ai"); }
+  if (data.action === "adopt") { setStage("work"); followSelection(); await adoptCurrent(); }
 }
 if (typeof BroadcastChannel !== "undefined") { const channel = new BroadcastChannel("WpsTranslationAssistant"); channel.onmessage = event => command(event.data); }
 if (host.app) { let pending = ""; try { pending = host.app.PluginStorage.getItem(commandKey); } catch { /* 无待处理命令。 */ } if (pending) command(pending); else scan(true); }

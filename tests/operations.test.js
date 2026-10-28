@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { WpsHost } from "../src/wps-host.js";
 import { parseWorkbook } from "../src/model.js";
-import { applyDraft, applySuggestions, undoSuggestions } from "../src/operations.js";
+import { applyDraft, applyCurrentSuggestion, applySuggestions, undoSuggestions } from "../src/operations.js";
 import { sampleSheets } from "./fixtures.js";
 
 function setup() {
@@ -22,6 +22,40 @@ function setup() {
   const app = { ActiveWorkbook: book }, host = new WpsHost(app);
   return { sheets, cells, app, host, units: parseWorkbook(sheets, "EN").units, bookKey: book.FullName };
 }
+
+test("单条 AI 一键填空，无额外确认，且可撤销", async () => {
+  const s = setup(), u = s.units[0]; let confirms = 0;
+  const r = await applyCurrentSuggestion(s.host, s.bookKey, u, s.units, { confirm: () => { confirms++; return true; } });
+  assert.equal(confirms, 0); assert.equal(r.changes.length, 1);
+  assert.equal(s.cells.get("Language!F2").Value2, u.ai);
+  assert.equal((await undoSuggestions(s.host, s.bookKey, r.changes)).restored, 1);
+});
+test("已有译文或不同的人工草稿合并确认，取消不写入", async () => {
+  const s = setup(), u = s.units.find(u => u.key === "Welcome"), draft = { value: "My draft", reviewed: u };
+  let confirms = 0;
+  const r = await applyCurrentSuggestion(s.host, s.bookKey, u, s.units, { draft, confirm: options => {
+    confirms++; assert.equal(options.overwriteExisting, true); assert.equal(options.discardDraft, true); return false;
+  } });
+  assert.equal(confirms, 1); assert.equal(r.cancelled, true);
+  assert.equal(s.cells.get("Language!F3").Value2, "Hello"); assert.equal(draft.value, "My draft");
+});
+test("空白目标的不同人工草稿仍需确认，同 AI 草稿不多弹一次", async () => {
+  const s = setup(), u = s.units[0]; let confirms = 0;
+  const r = await applyCurrentSuggestion(s.host, s.bookKey, u, s.units, { draft: { value: "Human {0}", reviewed: u }, confirm: info => {
+    confirms++; assert.equal(info.overwriteExisting, false); assert.equal(info.discardDraft, true); return false;
+  } });
+  assert.equal(r.cancelled, true); assert.equal(confirms, 1);
+  const accepted = await applyCurrentSuggestion(s.host, s.bookKey, u, s.units, { draft: { value: u.ai, reviewed: u }, confirm: () => { throw new Error("不应弹窗"); } });
+  assert.equal(accepted.changes.length, 1);
+});
+test("一键采用拒绝不合格 AI、外部变更与失效草稿", async () => {
+  const s = setup(), u = s.units[0], invalid = s.units.find(u => u.key === "UnsafeAI");
+  await assert.rejects(applyCurrentSuggestion(s.host, s.bookKey, invalid, s.units), /未通过/);
+  await assert.rejects(applyCurrentSuggestion(s.host, s.bookKey, u, s.units, { draft: { value: "Human {0}", reviewed: { ...u, source: "Old" } } }), /已变化/);
+  const changed = structuredClone(s.units); changed[0].ai = "Other {0}";
+  await assert.rejects(applyCurrentSuggestion(s.host, s.bookKey, u, changed), /已变化/);
+  assert.equal(s.cells.get("Language!F2").Value2, "");
+});
 
 test("人工草稿只写目标格，作为文本保留格式，且可撤销最近一次写入", async () => {
   const s = setup(), u = s.units[0];

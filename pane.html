@@ -25,7 +25,7 @@
         <label class="content-label" for="target">最终译文草稿</label><textarea id="target" rows="4" placeholder="可直接输入，或使用下方建议作为底稿" disabled></textarea>
         <div id="current-errors" class="problem-text" role="status" aria-live="polite"></div><p id="draft-status" class="muted"></p>
         <button id="discard-draft" class="text-button" hidden>丢弃本条草稿，重新载入当前译文</button>
-        <details id="ai-box" open><summary>表内 AI 建议</summary><pre id="ai" class="ai-text"></pre><div id="ai-errors" class="problem-text"></div><button id="adopt" class="text-button" disabled>以 AI 建议为底稿</button><p class="muted">建议来自表内，未调用在线 AI。格式通过仍需核对含义和术语。</p></details>
+        <details id="ai-box" open><summary>表内 AI 建议</summary><pre id="ai" class="ai-text"></pre><div id="ai-errors" class="problem-text"></div><div class="write-actions"><button id="adopt" class="primary" disabled>采用 AI 并写入</button><button id="load-ai" class="text-button" disabled>先载入草稿</button></div><p class="muted">直接采用会填写当前译文，仍需用 WPS 保存。建议来自表内，格式通过仍需核对含义和术语。</p></details>
         <div class="write-actions"><button id="commit" class="primary" disabled>写入并下一条</button><button id="skip" disabled>暂跳过</button></div>
       </div>
       <button id="next" class="full" disabled>下一条待处理 →</button><p class="muted">也可直接在表格中编辑。提交单元格后自动检查，再点击下一条。</p>

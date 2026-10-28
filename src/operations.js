@@ -15,6 +15,24 @@ export function applyDraft(host, bookKey, reviewed, freshUnits, value) {
   return { unit: fresh, before: fresh.target, beforeRaw: rawBefore, after: value };
 }
 
+// 空白译文一键采用；已有译文或不同的人工草稿仅用一次确认，取消时保留全部内容。
+export async function applyCurrentSuggestion(host, bookKey, reviewed, freshUnits, { draft = null, confirm = () => true } = {}) {
+  host.assertBook(bookKey);
+  const fresh = freshUnits.find(u => u.id === reviewed?.id);
+  if (!sameReviewedUnit(reviewed, fresh) || (draft && !sameReviewedUnit(draft.reviewed, fresh))) {
+    throw new Error("表格内容或位置已变化，未采用 AI。请重新载入当前译文后核对。");
+  }
+  const problem = adoptionProblem(fresh);
+  if (problem) throw new Error(problem);
+  const discardDraft = !!draft && draft.value !== fresh.target && draft.value !== fresh.ai;
+  return applySuggestions(host, bookKey, [reviewed], freshUnits, {
+    confirm: plan => {
+      const overwriteExisting = !isBlank(plan[0].before);
+      return (!discardDraft && !overwriteExisting) || confirm({ unit: fresh, discardDraft, overwriteExisting });
+    },
+  });
+}
+
 // 每次写入都从刚读取的模型重新确认，旧页面中的行地址不能直接用于写入。
 export async function applySuggestions(host, bookKey, reviewed, freshUnits, { onlyEmpty = false, confirm = () => true } = {}) {
   host.assertBook(bookKey);
