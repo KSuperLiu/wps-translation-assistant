@@ -17,7 +17,7 @@
     <div class="compact-progress"><div class="row"><span id="work-language"></span><button id="task-overview" class="text-button">任务概览</button></div><p id="work-progress"></p><progress id="progress" max="100" value="0"></progress></div>
     <section class="card current-section">
       <div class="row"><h2>当前条目</h2><button id="locate" class="text-button" disabled>定位译文</button></div>
-      <p id="current-meta" class="muted">点击“开始翻译”，或在表格内选择译文。</p><p id="current-key" class="key"></p>
+      <p id="current-meta" class="muted">点击“开始翻译”，或在表格内选择译文。</p>
       <div id="current-content" hidden>
         <span id="current-kind" class="kind"></span><label class="content-label">当前原文</label><pre id="source"></pre>
         <details id="source-change" open><summary>原文变化</summary><div id="source-diff" class="source-diff"></div><details><summary>完整旧原文</summary><pre id="old-source"></pre></details></details>
@@ -27,6 +27,7 @@
         <button id="discard-draft" class="text-button" hidden>丢弃本条草稿，重新载入当前译文</button>
         <details id="ai-box" open><summary>表内 AI 建议</summary><pre id="ai" class="ai-text"></pre><div id="ai-errors" class="problem-text"></div><div class="write-actions"><button id="adopt" class="primary" disabled>采用 AI 并写入</button><button id="load-ai" class="text-button" disabled>先载入草稿</button></div><p class="muted">直接采用会填写当前译文，仍需用 WPS 保存。建议来自表内，格式通过仍需核对含义和术语。</p></details>
         <div class="write-actions"><button id="commit" class="primary" disabled>写入并下一条</button><button id="skip" disabled>暂跳过</button></div>
+        <details id="current-details"><summary>条目信息</summary><p id="current-location" class="muted"></p><p id="current-key" class="key"></p></details>
       </div>
       <button id="next" class="full" disabled>下一条待处理 →</button><p class="muted">也可直接在表格中编辑。提交单元格后自动检查，再点击下一条。</p>
     </section>

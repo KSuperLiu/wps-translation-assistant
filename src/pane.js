@@ -113,8 +113,10 @@ function render() {
 function renderCurrent() {
   const u = current();
   $("current-content").hidden = !u;
+  $("current-meta").hidden = !!u;
   $("current-key").textContent = u?.key || "";
-  $("current-meta").textContent = u ? u.sheet + " · " + u.cell + " · " + u.field : "在表格中选中译文，或点击下一条待处理。";
+  $("current-location").textContent = u ? u.sheet + " · " + u.cell + " · " + u.field : "";
+  $("current-meta").textContent = "在表格中选中译文，或点击下一条待处理。";
   if (!u) return;
   $("current-kind").textContent = taskKind(u);
   $("source").textContent = u.source || "（空）";
