@@ -1,6 +1,6 @@
 {
 	"name": "WpsTranslationAssistant",
-	"version": "1.3.3",
+	"version": "1.3.4",
 	"private": true,
 	"type": "module",
 	"description": "WPS 表格翻译助手：翻译表识别、校验、问题定位、进度及 AI 建议采用",

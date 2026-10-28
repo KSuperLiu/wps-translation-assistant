@@ -29,7 +29,6 @@ export function workflowUnits(units, { sheet = "", query = "", status = "pending
     if (status === "translation") return taskKind(u) === "待补译";
     if (status === "filled") return !u.untranslated;
     if (status === "issues") return u.errors.length > 0;
-    if (status === "ai") return !isBlank(u.ai) && u.ai !== u.target;
     return true;
   });
 }

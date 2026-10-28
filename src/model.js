@@ -70,7 +70,6 @@ export function filterUnits(units, { sheet = "", status = "all", query = "" } = 
   return units.filter(u => (!sheet || u.sheet === sheet)
     && (status !== "issues" || u.errors.length > 0)
     && (status !== "untranslated" || u.untranslated)
-    && (status !== "ai" || (!isBlank(u.ai) && u.ai !== u.target))
     && (!q || [u.key, u.source, u.oldSource || "", u.target, u.old, u.ai, u.field].some(s => s.toLocaleLowerCase().includes(q))));
 }
 
