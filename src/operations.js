@@ -1,6 +1,19 @@
 import { adoptionProblem, sameReviewedUnit } from "./model.js";
 import { isBlank } from "./validation.js";
 import { pause } from "./wps-host.js";
+import { draftProblem } from "./workflow.js";
+
+export function applyDraft(host, bookKey, reviewed, freshUnits, value) {
+  host.assertBook(bookKey);
+  const fresh = freshUnits.find(u => u.id === reviewed?.id);
+  if (!sameReviewedUnit(reviewed, fresh)) throw new Error("表格内容或位置已变化，草稿尚未写入。请重新载入当前译文后核对。");
+  const problem = draftProblem(fresh, value);
+  if (problem) throw new Error(problem);
+  const rawBefore = host.verifyUnit(fresh, bookKey, fresh.target).Value2;
+  if (fresh.target === value) return null;
+  host.writeText(fresh, bookKey, fresh.target, value);
+  return { unit: fresh, before: fresh.target, beforeRaw: rawBefore, after: value };
+}
 
 // 每次写入都从刚读取的模型重新确认，旧页面中的行地址不能直接用于写入。
 export async function applySuggestions(host, bookKey, reviewed, freshUnits, { onlyEmpty = false, confirm = () => true } = {}) {

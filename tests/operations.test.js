@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { WpsHost } from "../src/wps-host.js";
 import { parseWorkbook } from "../src/model.js";
-import { applySuggestions, undoSuggestions } from "../src/operations.js";
+import { applyDraft, applySuggestions, undoSuggestions } from "../src/operations.js";
 import { sampleSheets } from "./fixtures.js";
 
 function setup() {
@@ -22,6 +22,35 @@ function setup() {
   const app = { ActiveWorkbook: book }, host = new WpsHost(app);
   return { sheets, cells, app, host, units: parseWorkbook(sheets, "EN").units, bookKey: book.FullName };
 }
+
+test("人工草稿只写目标格，作为文本保留格式，且可撤销最近一次写入", async () => {
+  const s = setup(), u = s.units[0];
+  const change = applyDraft(s.host, s.bookKey, u, s.units, "=Get {0} coins");
+  assert.equal(s.cells.get("Language!F2").Value2, "=Get {0} coins");
+  assert.equal(s.cells.get("Language!F2").NumberFormat, "General");
+  assert.equal(s.cells.get("Language!C2").Value2, u.source);
+  assert.equal(s.cells.get("Language!G2").Value2, u.ai);
+  const result = await undoSuggestions(s.host, s.bookKey, [change]);
+  assert.equal(result.restored, 1); assert.equal(s.cells.get("Language!F2").Value2, "");
+});
+test("草稿遇到外部改表、缺失占位符、重复 Key 或工作簿切换时不写入", () => {
+  const s = setup(), u = s.units[0];
+  assert.throws(() => applyDraft(s.host, s.bookKey, u, s.units, "Get"), /缺少/);
+  const changed = structuredClone(s.units); changed[0].source = "new";
+  assert.throws(() => applyDraft(s.host, s.bookKey, u, changed, "Get {0}"), /变化/);
+  s.cells.get("Language!F2").Value2 = "Other {0}";
+  assert.throws(() => applyDraft(s.host, s.bookKey, u, s.units, "Get {0}"), /译文已变化/);
+  s.app.ActiveWorkbook = { FullName: "other.xlsx" };
+  assert.throws(() => applyDraft(s.host, s.bookKey, u, s.units, "Get {0}"), /工作簿/);
+});
+test("人工草稿不写公式、合并格和受保护单元格，空原文不能被 AI 猜译", () => {
+  for (const flag of ["HasFormula", "MergeCells"]) {
+    const s = setup(); s.cells.get("Language!F2")[flag] = true;
+    assert.throws(() => applyDraft(s.host, s.bookKey, s.units[0], s.units, "Get {0}"));
+  }
+  const s = setup(), u = { ...s.units[0], source: "" };
+  assert.throws(() => applyDraft(s.host, s.bookKey, u, [u], "Guess"), /原文为空/);
+});
 
 test("采用只写目标译文，保留原文、旧译文、AI 列和单元格格式", async () => {
   const s = setup(), u = s.units[0], before = new Map([...s.cells].map(([k, v]) => [k, structuredClone(v)]));

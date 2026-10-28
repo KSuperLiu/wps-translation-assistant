@@ -11,7 +11,7 @@ export function loadProfiles(storage) {
 
 export function setupMapping({ state, getStorage, message, changed }) {
   const $ = id => document.getElementById(id);
-  const selectIds = ["key", "source", "target", "old", "ai"];
+  const selectIds = ["key", "source", "target", "old", "oldSource", "ai"];
   const currentSheet = () => state.snapshot?.sheets.find(s => s.name === $("mapping-sheet").value);
   const currentProfile = () => {
     const sheet = currentSheet(), row = Number($("mapping-header").value);
@@ -29,7 +29,7 @@ export function setupMapping({ state, getStorage, message, changed }) {
     for (const name of selectIds) {
       const select = $("mapping-" + name), previous = values[name + "Col"] ?? select.value;
       const options = Array.from({ length: sheet.columns }, (_, i) => option(i + 1, columnName(i + 1) + " · " + (sheet.values[row - 1]?.[i] || "空表头")));
-      select.replaceChildren(option(0, name === "old" || name === "ai" ? "无" : "请选择"), ...options);
+      select.replaceChildren(option(0, ["old", "oldSource", "ai"].includes(name) ? "无" : "请选择"), ...options);
       select.value = String(previous || 0);
     }
     refreshEntries();
@@ -64,7 +64,7 @@ export function setupMapping({ state, getStorage, message, changed }) {
     $("mapping-data").value = entry?.dataStartRow || auto?.dataStartRow || 2;
     $("mapping-language").value = entry?.language || target?.language || state.language || "";
     $("mapping-field").value = entry?.field || auto?.field || "";
-    refreshColumns(entry || { keyCol: auto?.keyCol, sourceCol: auto?.sourceCol, targetCol: target?.targetCol, oldCol: target?.oldCol, aiCol: target?.aiCol });
+    refreshColumns(entry || { keyCol: auto?.keyCol, sourceCol: auto?.sourceCol, oldSourceCol: auto?.oldSourceCol, targetCol: target?.targetCol, oldCol: target?.oldCol, aiCol: target?.aiCol });
   }
   $("mapping-sheet").onchange = loadSheet;
   $("mapping-header").onchange = () => {

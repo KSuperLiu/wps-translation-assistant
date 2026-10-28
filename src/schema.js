@@ -50,9 +50,11 @@ function flatLayout(sheet, row) {
   if (!sources.length || !keys.length || !roles.some(r => r.role === "current" || (r.language === "ID" && !keys.some(k => k.column === r.column)))) return null;
   if (sources.length !== 1 || keys.length !== 1) return { groups: [], score: 20, issues: ["原文列或 Key 列不唯一，请设置字段映射。"] };
   const mapping = targetMappings(sheet, row, columns(sheet).filter(c => c !== sources[0].column && c !== keys[0].column));
+  const oldSources = roles.filter(r => r.role === "old-source");
+  if (oldSources.length > 1) mapping.issues.push("旧原文列不唯一，已停用旧原文对照，请设置字段映射。");
   return { score: 30 + mapping.targets.length, issues: mapping.issues, groups: [{
     field: "Language", headerRow: row, fieldRow: 0, dataStartRow: row + 1,
-    sourceCol: sources[0].column, keyCol: keys[0].column, baseKeyCol: 0,
+    sourceCol: sources[0].column, oldSourceCol: oldSources.length === 1 ? oldSources[0].column : 0, keyCol: keys[0].column, baseKeyCol: 0,
     groupStart: 1, groupEnd: sheet.columns, ...mapping,
   }] };
 }
@@ -84,6 +86,7 @@ function configLayout(sheet, row) {
     const keys = meta.filter(m => m.kind === "key" && sameField(m.field, field));
     if (keys.length > 1) { issues.push(field + "：字段映射重复，请明确完整 Key 列。"); continue; }
     const oldSources = allowed.filter(c => headerRole(readCell(sheet, row, c)).role === "old-source");
+    if (oldSources.length > 1) issues.push(field + "：旧原文列不唯一，已停用旧原文对照，请设置字段映射。");
     const explicitSource = headerRole(readCell(sheet, row, sourceCol)).role === "source";
     // 非标准原文表头必须有旧原文锚点及旧/新目标配对；不猜测任意说明列。
     if (!explicitSource && (!oldSources.length || !mapping.paired || (!keys.length && !baseKeys.length))) {
@@ -92,6 +95,7 @@ function configLayout(sheet, row) {
     if (!mapping.targets.length) { issues.push(field + "：未找到匹配的旧/新目标语言列，请设置字段映射。"); continue; }
     if (!keys.length && baseKeys.length !== 1) { issues.push(field + "：无法唯一确定 Key 或基础 Id 列，请设置字段映射。"); continue; }
     groups.push({ field, headerRow: row, fieldRow, dataStartRow: row + 1, sourceCol, keyCol: keys[0]?.column || 0,
+      oldSourceCol: oldSources.length === 1 ? oldSources[0] : 0,
       baseKeyCol: baseKeys.length === 1 ? baseKeys[0] : 0, groupStart, groupEnd, ...mapping });
     issues.push(...mapping.issues.map(issue => field + "：" + issue));
   }
@@ -106,11 +110,11 @@ export function schemaSignature(sheet, headerRow) {
 
 export function createManualProfile(sheet, entry, existing = null) {
   const e = { ...entry, language: canonicalLanguage(entry.language) };
-  for (const name of ["headerRow", "dataStartRow", "sourceCol", "targetCol", "keyCol", "oldCol", "aiCol"]) e[name] = Number(e[name] || 0);
+  for (const name of ["headerRow", "dataStartRow", "sourceCol", "oldSourceCol", "targetCol", "keyCol", "oldCol", "aiCol"]) e[name] = Number(e[name] || 0);
   if (!e.language) throw new Error("请填写目标语种代码或语言名，例如 FR、pt-BR、Korean。");
   if (!Number.isInteger(e.headerRow) || e.headerRow < 1 || e.headerRow > sheet.rows) throw new Error("表头行超出工作表范围。");
   if (!Number.isInteger(e.dataStartRow) || e.dataStartRow <= e.headerRow || e.dataStartRow > sheet.rows + 1) throw new Error("数据起始行必须在表头之后。");
-  const used = [e.sourceCol, e.targetCol, e.keyCol, e.oldCol, e.aiCol].filter(Boolean);
+  const used = [e.sourceCol, e.oldSourceCol, e.targetCol, e.keyCol, e.oldCol, e.aiCol].filter(Boolean);
   if (!e.sourceCol || !e.targetCol || !e.keyCol || used.some(c => !Number.isInteger(c) || c < 1 || c > sheet.columns) || unique(used).length !== used.length) {
     throw new Error("请选择不同的 Key、原文和新译文列；旧译文及 AI 列可留空，但不能与其他角色重复。");
   }
@@ -118,8 +122,8 @@ export function createManualProfile(sheet, entry, existing = null) {
   const signature = schemaSignature(sheet, e.headerRow);
   const entries = existing?.signature === signature ? existing.entries.filter(item => !(item.sourceCol === e.sourceCol && item.language === e.language)) : [];
   for (const other of entries) {
-    const protectedOther = [other.sourceCol, other.keyCol, other.oldCol, other.aiCol].filter(Boolean);
-    const protectedNew = [e.sourceCol, e.keyCol, e.oldCol, e.aiCol].filter(Boolean);
+    const protectedOther = [other.sourceCol, other.oldSourceCol, other.keyCol, other.oldCol, other.aiCol].filter(Boolean);
+    const protectedNew = [e.sourceCol, e.oldSourceCol, e.keyCol, e.oldCol, e.aiCol].filter(Boolean);
     if (other.targetCol === e.targetCol || protectedOther.includes(e.targetCol) || protectedNew.includes(other.targetCol)) {
       throw new Error("字段映射相互冲突：新译文列不能与其他字段的新译文、原文、Key、旧译文或 AI 列重叠。");
     }
@@ -133,7 +137,7 @@ function manualGroups(sheet, profile) {
   if (!validated || validated.entries.length !== profile.entries.length) throw new Error("缓存中的字段映射重复或为空，请重新设置。");
   return validated.entries.map(checked => {
     return { field: checked.field, headerRow: checked.headerRow, fieldRow: 0, dataStartRow: checked.dataStartRow,
-      sourceCol: checked.sourceCol, keyCol: checked.keyCol, baseKeyCol: 0, groupStart: checked.sourceCol, groupEnd: checked.targetCol,
+      sourceCol: checked.sourceCol, oldSourceCol: checked.oldSourceCol, keyCol: checked.keyCol, baseKeyCol: 0, groupStart: checked.sourceCol, groupEnd: checked.targetCol,
       referenceLanguages: [], targets: [{ language: checked.language, targetCol: checked.targetCol, oldCol: checked.oldCol, aiCol: checked.aiCol }] };
   });
 }
