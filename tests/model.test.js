@@ -141,11 +141,45 @@ test("标准 i18N 和旧拼写 il8N 同时存在时拒绝歧义映射", () => {
   assert.ok(!model.units.some(u => u.field === "Name"));
   assert.ok(model.diagnostics.some(d => d.includes("映射重复")));
 });
-test("重复 Key 全部标记，并禁止采用 AI", () => {
+test("同一工作表内重复 Key 全部标记，并禁止采用 AI", () => {
   const sheets = sampleSheets(); sheets[1].values[2][0] = "Coin";
   const duplicated = parseWorkbook(sheets, "EN").units.filter(u => u.duplicate);
   assert.equal(duplicated.length, 2);
   assert.ok(duplicated.every(u => adoptionProblem(u).includes("重复")));
+});
+
+test("不同工作表共用完整 Key 时不判重，即使原文或译文不同", () => {
+  const sheets = sampleSheets(), other = structuredClone(sheets[1]);
+  other.name = "Other";
+  other.values[1][2] = "奖励 {0}";
+  other.values[1][5] = "Reward {0}";
+  sheets.push(other);
+  const units = parseWorkbook(sheets, "EN").units;
+  assert.equal(units.length, 10);
+  assert.ok(units.every(u => !u.duplicate));
+  assert.equal(adoptionProblem(units.find(u => u.sheet === "Language" && u.key === "Coin")), "");
+});
+
+test("同一行相同编号的不同字段后缀属于不同完整 Key", () => {
+  const sheet = sampleSheets()[2];
+  sheet.values[3][12] = "-42_groupName";
+  sheet.values[3][14] = "-42_groupDesc";
+  const units = parseWorkbook([sheet], "EN").units;
+  assert.deepEqual(units.map(u => u.key), ["-42_groupName", "-42_groupDesc"]);
+  assert.ok(units.every(u => !u.duplicate));
+});
+
+test("同一工作表不同字段共用同一个完整 Key 仍判重，不影响其他表", () => {
+  const sheet = sampleSheets()[2];
+  sheet.values[3][12] = "-42_groupName";
+  sheet.values[3][14] = "-42_groupName";
+  const other = structuredClone(sampleSheets()[1]);
+  other.name = "Other";
+  other.values[1][0] = "-42_groupName";
+  const units = parseWorkbook([sheet, other], "EN").units;
+  assert.equal(units.filter(u => u.duplicate).length, 2);
+  assert.ok(units.filter(u => u.sheet === sheet.name).every(u => u.errors.some(e => e.includes("当前工作表内重复 Key"))));
+  assert.ok(units.filter(u => u.sheet === other.name).every(u => !u.duplicate));
 });
 test("不采用其他语言的 AI 列，也不猜测多语言目标", () => {
   const sheets = sampleSheets(); sheets[1].values[0][6] = "FR_AI";

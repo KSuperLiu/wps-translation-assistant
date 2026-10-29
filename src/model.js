@@ -51,10 +51,14 @@ export function parseWorkbook(sheets, language, profiles = []) {
     if (missingKeys) diagnostics.push(group.sheet + " · " + field + "：有 " + missingKeys + " 条非空原文缺少 Key，未计入任务，请核实。");
   }
   const counts = new Map();
-  for (const unit of units) counts.set(unit.key, (counts.get(unit.key) || 0) + 1);
+  const scopedKey = unit => JSON.stringify([unit.sheet, unit.key]);
   for (const unit of units) {
-    unit.duplicate = counts.get(unit.key) > 1;
-    if (unit.duplicate) unit.errors.push("重复 LanguageKey：" + unit.key);
+    const key = scopedKey(unit);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  for (const unit of units) {
+    unit.duplicate = counts.get(scopedKey(unit)) > 1;
+    if (unit.duplicate) unit.errors.push("当前工作表内重复 Key：" + unit.key);
   }
   return { language: targetLanguage, units, diagnostics };
 }
@@ -85,7 +89,7 @@ export function sameReviewedUnit(a, b) {
 
 export function adoptionProblem(unit) {
   if (!unit) return "没有选中翻译条目。";
-  if (unit.duplicate) return "LanguageKey 重复，请先处理重复项。";
+  if (unit.duplicate) return "当前工作表内 Key 重复，请先处理重复项。";
   if (isBlank(unit.ai)) return "这一条没有 AI 建议。";
   if (unit.ai === unit.target) return "当前译文与 AI 建议相同，无需采用。";
   if (unit.aiErrors.length) return "AI 建议未通过校验：" + unit.aiErrors.join("；");
