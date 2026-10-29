@@ -36,9 +36,12 @@ export function workflowUnits(units, { sheet = "", query = "", status = "pending
 export function nextPending(units, selectedId, scope = {}) {
   const candidates = workflowUnits(units, { sheet: scope.sheet, query: scope.query, status: scope.status || "all" });
   const index = candidates.findIndex(u => u.id === selectedId);
-  for (let offset = 1; offset <= candidates.length; offset++) {
-    const unit = candidates[(index + offset + candidates.length) % candidates.length];
-    if (pending(unit)) return unit;
+  // 同一筛选范围内先走完所有空译文，再处理已有译文的校验问题。
+  for (const accepts of [unit => unit.untranslated, unit => unit.errors.length > 0]) {
+    for (let offset = 1; offset <= candidates.length; offset++) {
+      const unit = candidates[(index + offset + candidates.length) % candidates.length];
+      if (accepts(unit)) return unit;
+    }
   }
   return null;
 }

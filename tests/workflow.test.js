@@ -69,6 +69,40 @@ test("待处理、需核实和已填写筛选不互相冒充，搜索可以找�
   assert.equal(workflowUnits(u, { status: "filled" }).length, 2);
   assert.equal(workflowUnits(u, { query: "伤害+32%" }).length, 1);
 });
+
+test("下一条优先跳转空译文，即使前面先遇到已有译文的校验问题", () => {
+  const units = parseWorkbook([example()], "EN").units;
+  assert.equal(nextPending(units, units[3].id).key, "revision");
+  assert.equal(nextPending(units, units[0].id).key, "translate");
+  const other = { ...units[1], id: "other", sheet: "Other" };
+  assert.equal(nextPending([units[3], units[4], other], units[3].id).id, "other");
+});
+
+test("当前范围空译文全部填完后才跳转校验问题，没有问题时不返回已完成条目", () => {
+  const units = parseWorkbook([example()], "EN").units.map(u => u.untranslated ? { ...u, untranslated: false, target: "Filled", errors: [] } : u);
+  assert.equal(nextPending(units, units[3].id).key, "invalid");
+  assert.equal(nextPending(units, units[4].id).key, "invalid");
+  assert.equal(nextPending(units.map(u => ({ ...u, errors: [] })), units[3].id), null);
+});
+
+test("空译文优先级不突破工作表、搜索与任务筛选范围", () => {
+  const units = parseWorkbook([example()], "EN").units;
+  const other = { ...units[1], id: "other", sheet: "Other" };
+  const candidates = [units[3], units[4], other];
+  assert.equal(nextPending(candidates, units[3].id, { sheet: "Task" }).key, "invalid");
+  assert.equal(nextPending(units, null, { query: "剩余" }).key, "invalid");
+  assert.equal(nextPending(units, null, { status: "filled" }).key, "invalid");
+  assert.equal(nextPending(units, null, { status: "issues" }).key, "invalid");
+});
+
+test("空译文按原条目顺序循环；唯一空译文及带 Key 问题的空译文仍优先", () => {
+  const units = parseWorkbook([example()], "EN").units;
+  assert.equal(nextPending(units, units[2].id).key, "revision");
+  const blank = { ...units[1], duplicate: true, errors: ["重复 Key"] };
+  assert.equal(nextPending([units[4], blank], units[4].id).id, blank.id);
+  assert.equal(nextPending([units[4], blank], blank.id).id, blank.id);
+  assert.equal(nextPending([], null), null);
+});
 test("草稿必须有原文、非空且保留占位符和 TMP；表内 AI 通过不等于人工译文通过", () => {
   const u = parseWorkbook([example()], "EN").units;
   assert.match(draftProblem(u[1], "Get"), /缺少/);
