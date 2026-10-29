@@ -45,6 +45,7 @@
   <details id="diagnostic-box" hidden><summary id="diagnostic-count">识别提示</summary><ul id="diagnostics"></ul></details>
   <details id="more-box" class="card"><summary>更多</summary>
     <button id="scan" class="full">重新识别工作簿</button><button id="undo" class="text-button full" disabled>撤销最近一次助手写入</button>
+    <details id="validation-settings"><summary>检查设置</summary><label class="check-setting"><input id="check-newlines" type="checkbox" checked>检查 <code>\n</code> 换行标记</label><p class="muted">默认开启，检查反斜杠加 n 的新增和遗漏。关闭后忽略其数量差异，其他占位符和标签仍检查。</p><p id="validation-settings-status" class="muted" role="status" aria-live="polite" hidden></p></details>
     <details><summary>批量填充 AI 建议</summary><p class="muted">仅填充当前任务列表筛选内的空白译文。填充后需要逐条复核，不能视为人工审校完成。</p><button id="batch" class="full" disabled>用格式合格的 AI 建议填充空白</button></details>
     <details id="mapping-box" class="mapping-box"><summary>识别设置 · 特殊表头</summary><p class="muted">自动识别有歧义时指定列。配置按表头结构复用，不保存译文。</p>
       <label class="mapping-label">工作表<select id="mapping-sheet" aria-label="映射工作表"></select></label><p id="mapping-status" class="muted"></p>

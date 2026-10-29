@@ -2,6 +2,7 @@ import "./style.css";
 import "./mapping.css";
 import "./updates.css";
 import "./clipboard.css";
+import "./validation-settings.css";
 import { WpsHost } from "./wps-host.js";
 import { discoverLanguages, parseWorkbook, selectedUnit, adoptionProblem, sameReviewedUnit, columnName } from "./model.js";
 import { applyDraft, applyCurrentSuggestion, applySuggestions, undoSuggestions } from "./operations.js";
@@ -10,6 +11,7 @@ import { workflowSummary, workflowUnits, nextPending, taskKind, processingStatus
 import { loadProfiles, setupMapping } from "./mapping-ui.js";
 import { setupUpdateControls } from "./update-ui.js";
 import { copyText } from "./clipboard.js";
+import { setupValidationSettings } from "./validation-settings.js";
 
 const $ = id => document.getElementById(id);
 const host = new WpsHost(window.Application);
@@ -18,7 +20,8 @@ let savedProfiles = [];
 try { savedProfiles = loadProfiles(window.localStorage); } catch { /* 不提供持久存储时仅在会话生效。 */ }
 const state = { snapshot: null, model: { units: [], diagnostics: [] }, language: "", selected: null,
   page: 0, stage: "receive", busy: false, writing: false, journal: [], journalBook: "", journals: new Map(),
-  drafts: new Map(), fullRefresh: false, dirty: new Set(), timer: null, lastCommand: "", checkedAt: null, profiles: savedProfiles };
+  drafts: new Map(), fullRefresh: false, dirty: new Set(), timer: null, lastCommand: "", checkedAt: null, profiles: savedProfiles,
+  validationOptions: { checkNewlines: true } };
 const pageSize = 30, commandKey = "WpsTranslationAssistant.command";
 let copyRequest = 0;
 function message(value, kind = "") { $("message").textContent = value; $("message").className = kind; }
@@ -44,7 +47,7 @@ function draftCount() {
 }
 function busy(value) {
   state.busy = value;
-  for (const id of ["scan", "language", "sheet", "filter", "search", "delivery-refresh", "tab-work", "tab-delivery", "task-overview"]) $(id).disabled = value;
+  for (const id of ["scan", "language", "sheet", "filter", "search", "delivery-refresh", "tab-work", "tab-delivery", "task-overview", "check-newlines"]) $(id).disabled = value;
   updateActions();
 }
 function updateActions() {
@@ -74,7 +77,7 @@ function updateLanguages(languages) {
   $("language").value = state.language;
 }
 function rebuild() {
-  state.model = state.snapshot ? parseWorkbook(state.snapshot.sheets, state.language, state.profiles) : { units: [], diagnostics: [] };
+  state.model = state.snapshot ? parseWorkbook(state.snapshot.sheets, state.language, state.profiles, state.validationOptions) : { units: [], diagnostics: [] };
   const previous = $("sheet").value, names = [...new Set(state.model.units.map(u => u.sheet))];
   $("sheet").replaceChildren(option("", "全部工作表"), ...names.map(n => option(n, n)));
   $("sheet").value = names.includes(previous) ? previous : "";
@@ -267,7 +270,7 @@ async function commit() {
   let success = false;
   try {
     const fresh = await host.snapshot(v => message("写入前核对 · " + v));
-    const model = parseWorkbook(fresh.sheets, state.language, state.profiles);
+    const model = parseWorkbook(fresh.sheets, state.language, state.profiles, state.validationOptions);
     const change = applyDraft(host, key, draft.reviewed, model.units, draft.value);
     if (change) journal([change]);
     bookDrafts().delete(draftKey(u)); success = true;
@@ -293,7 +296,7 @@ async function adoptCurrent() {
   let result, failure = "";
   try {
     const fresh = await host.snapshot(v => message("采用前核对 · " + v));
-    const model = parseWorkbook(fresh.sheets, state.language, state.profiles);
+    const model = parseWorkbook(fresh.sheets, state.language, state.profiles, state.validationOptions);
     result = await applyCurrentSuggestion(host, key, u, model.units, { draft,
       confirm: ({ unit, discardDraft, overwriteExisting }) => window.confirm([
         overwriteExisting ? "将替换 " + unit.sheet + "!" + unit.cell + " 的现有译文。" : "将填写 " + unit.sheet + "!" + unit.cell + "。",
@@ -314,7 +317,7 @@ async function batch() {
   const key = state.snapshot.bookKey; busy(true); state.writing = true; let result, failure = "";
   try {
     const fresh = await host.snapshot(v => message("填充前核对 · " + v));
-    result = await applySuggestions(host, key, reviewed, parseWorkbook(fresh.sheets, state.language, state.profiles).units, { onlyEmpty: true,
+    result = await applySuggestions(host, key, reviewed, parseWorkbook(fresh.sheets, state.language, state.profiles, state.validationOptions).units, { onlyEmpty: true,
       confirm: plan => window.confirm("将填充当前筛选内 " + plan.length + " 条空白译文。\nAI 仅通过格式检查，填充后仍需逐条复核含义和术语。是否继续？") });
     journal(result.changes); failure = result.error;
   } catch (e) { failure = e.message || String(e); }
@@ -363,6 +366,8 @@ $("target").oninput = () => rememberDraft($("target").value);
 $("adopt").onclick = adoptCurrent; $("load-ai").onclick = () => useReference("ai"); $("use-old").onclick = () => useReference("old");
 $("discard-draft").onclick = () => { const u = current(); if (u && window.confirm("丢弃本条侧栏草稿并读取表格当前译文？")) { bookDrafts().delete(draftKey(u)); renderCurrent(); updateActions(); } };
 $("commit").onclick = commit; $("batch").onclick = batch; $("undo").onclick = undo;
+const validationSettings = setupValidationSettings({ getStorage: () => window.localStorage, changed: value => { state.validationOptions = value; state.page = 0; rebuild(); } });
+state.validationOptions = validationSettings.value;
 const mapping = setupMapping({ state, getStorage: () => window.localStorage, message, changed: () => { if (!state.snapshot) return; state.journal = []; state.journals.delete(state.snapshot.bookKey); state.page = 0; state.selected = null; updateLanguages(discoverLanguages(state.snapshot.sheets, state.profiles)); rebuild(); } });
 const listeners = [];
 function listen(event, callback) { try { host.app.ApiEvent.AddApiEventListener(event, callback); listeners.push(event); } catch { message("部分自动检查事件不可用，修改后请在“更多”中重新识别。", "error"); } }

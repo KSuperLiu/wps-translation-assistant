@@ -16,9 +16,11 @@ test("格式占位符、命名参数、转义换行与属性原样保留", () =>
   assert.ok(validateText(source, source.replace("#fff", "#000")).length === 2);
 });
 
-test("允许译文新增一个或多个字面量换行标记，不要求数量与原文相等", () => {
-  assert.deepEqual(validateText("你好", "Hello\\nworld\\n"), []);
-  assert.deepEqual(validateText("你好\\n世界 {0}", "Hello\\n\\nworld {0}\\n"), []);
+test("关闭换行检查后允许译文新增或删减字面量换行标记", () => {
+  const options = { checkNewlines: false };
+  assert.deepEqual(validateText("你好", "Hello\\nworld\\n", options), []);
+  assert.deepEqual(validateText("你好\\n世界 {0}", "Hello\\n\\nworld {0}\\n", options), []);
+  assert.deepEqual(validateText("你好\\n世界 {0}", "Hello world {0}", options), []);
 });
 
 test("原文已有的字面量换行被删减时仍提示，单元格实际换行不能替代它", () => {
@@ -27,9 +29,16 @@ test("原文已有的字面量换行被删减时仍提示，单元格实际换�
 });
 
 test("允许额外换行不放过占位符缺失、额外占位符和标签错误", () => {
-  assert.deepEqual(validateText("{0} {0}", "{0}\\n"), ["缺少受保护片段：{0}"]);
-  assert.deepEqual(validateText("{0}", "{0}\\n{1}"), ["新增或修改了受保护片段：{1}"]);
-  assert.ok(validateText("<b>{0}</b>", "<b>{0}\\n").some(e => e.includes("未闭合")));
+  const options = { checkNewlines: false };
+  assert.deepEqual(validateText("{0} {0}", "{0}\\n", options), ["缺少受保护片段：{0}"]);
+  assert.deepEqual(validateText("{0}", "{0}\\n{1}", options), ["新增或修改了受保护片段：{1}"]);
+  assert.ok(validateText("<b>{0}</b>", "<b>{0}\\n", options).some(e => e.includes("未闭合")));
+});
+
+test("默认及明确开启时检查新增换行标记，关闭不影响单元格实际换行", () => {
+  assert.ok(validateText("你好", "Hello\\n").some(e => e.includes("多了 1 个换行标记")));
+  assert.ok(validateText("你好", "Hello\\n", { checkNewlines: true }).some(e => e.includes("多了 1 个换行标记")));
+  assert.deepEqual(validateText("你好", "Hello\nworld"), []);
 });
 test("标签嵌套次序错误及自闭合标签与工作台一致", () => {
   assert.ok(validateText("<b><i>x</i></b>", "<b><i>x</b></i>").some(e => e.includes("顺序")));

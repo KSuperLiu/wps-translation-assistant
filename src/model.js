@@ -10,7 +10,8 @@ export function columnName(column) {
 export const address = (row, column) => columnName(column) + row;
 export const discoverLanguages = (sheets, profiles = []) => inspectWorkbook(sheets, profiles).languages;
 
-export function parseWorkbook(sheets, language, profiles = []) {
+export function parseWorkbook(sheets, language, profiles = [], options = {}) {
+  const validationOptions = { checkNewlines: options.checkNewlines !== false };
   const schema = inspectWorkbook(sheets, profiles), units = [], diagnostics = [...schema.diagnostics];
   const targetLanguage = canonicalLanguage(language);
   for (const group of schema.groups) {
@@ -44,8 +45,8 @@ export function parseWorkbook(sheets, language, profiles = []) {
         language: targetLanguage, source, oldSource: oldSourceCol ? readCell(sheet, row, oldSourceCol) : "", target: value, ai, old: oldCol ? readCell(sheet, row, oldCol) : "",
         targetCol, sourceCol, aiCol, groupStart: Math.min(group.groupStart, group.groupEnd), groupEnd: Math.max(group.groupStart, group.groupEnd),
         cell: address(row, targetCol), sourceCell: address(row, sourceCol), aiCell: aiCol ? address(row, aiCol) : null,
-        referenceLanguages: group.referenceLanguages, guards,
-        untranslated: isBlank(value), errors: isBlank(value) || isBlank(source) ? [] : validateText(source, value), aiErrors: isBlank(ai) || isBlank(source) ? [] : validateText(source, ai),
+        referenceLanguages: group.referenceLanguages, guards, validationOptions,
+        untranslated: isBlank(value), errors: isBlank(value) || isBlank(source) ? [] : validateText(source, value, validationOptions), aiErrors: isBlank(ai) || isBlank(source) ? [] : validateText(source, ai, validationOptions),
       });
     }
     if (missingKeys) diagnostics.push(group.sheet + " · " + field + "：有 " + missingKeys + " 条非空原文缺少 Key，未计入任务，请核实。");

@@ -45,7 +45,7 @@ export function nextPending(units, selectedId, scope = {}) {
 export function draftProblem(unit, value) {
   if (!unit) return "请先选择一条翻译记录。";
   if (unit.duplicate) return "当前工作表内 Key 重复，请先核实重复项。";
-  return isBlank(value) || isBlank(unit.source) ? "" : validateText(unit.source, value).join("\n");
+  return isBlank(value) || isBlank(unit.source) ? "" : validateText(unit.source, value, unit.validationOptions).join("\n");
 }
 // 用连续差异片段展示变化，避免长文本为逐字符 diff 带来平方级开销。
 export function sourceDifference(before = "", after = "") {

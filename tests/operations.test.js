@@ -5,7 +5,7 @@ import { parseWorkbook } from "../src/model.js";
 import { applyDraft, applyCurrentSuggestion, applySuggestions, undoSuggestions } from "../src/operations.js";
 import { sampleSheets } from "./fixtures.js";
 
-function setup() {
+function setup(validationOptions = {}) {
   const sheets = sampleSheets(), cells = new Map();
   for (const sheet of sheets) sheet.values.forEach((row, r) => row.forEach((value, c) => {
     let col = "", n = c + 1;
@@ -20,7 +20,7 @@ function setup() {
     },
   }) } };
   const app = { ActiveWorkbook: book }, host = new WpsHost(app);
-  return { sheets, cells, app, host, units: parseWorkbook(sheets, "EN").units, bookKey: book.FullName };
+  return { sheets, cells, app, host, units: parseWorkbook(sheets, "EN", [], validationOptions).units, bookKey: book.FullName };
 }
 
 test("单条 AI 一键填空，无额外确认，且可撤销", async () => {
@@ -31,19 +31,35 @@ test("单条 AI 一键填空，无额外确认，且可撤销", async () => {
   assert.equal((await undoSuggestions(s.host, s.bookKey, r.changes)).restored, 1);
 });
 
-test("新增字面量换行不阻止人工草稿或表内 AI 建议写入，写入保留完整文本", async () => {
+test("关闭换行检查后允许草稿或表内 AI 建议新增换行，写入保留完整文本", async () => {
   const value = "Get {0}\\ncoins";
-  const draft = setup();
+  const draft = setup({ checkNewlines: false });
   applyDraft(draft.host, draft.bookKey, draft.units[0], draft.units, value);
   assert.equal(draft.cells.get("Language!F2").Value2, value);
-  const ai = setup();
+  const ai = setup({ checkNewlines: false });
   ai.sheets[1].values[1][6] = value;
   ai.cells.get("Language!G2").Value2 = value;
-  const units = parseWorkbook(ai.sheets, "EN").units;
+  const units = parseWorkbook(ai.sheets, "EN", [], { checkNewlines: false }).units;
   assert.deepEqual(units[0].aiErrors, []);
   const result = await applyCurrentSuggestion(ai.host, ai.bookKey, units[0], units);
   assert.equal(result.changes.length, 1);
   assert.equal(ai.cells.get("Language!F2").Value2, value);
+});
+
+test("重新开启换行检查后，宽松设置下的草稿和 AI 建议也不能绕过最新检查", async () => {
+  const s = setup(), value = "Get {0}\\ncoins";
+  s.sheets[1].values[1][6] = value;
+  s.cells.get("Language!G2").Value2 = value;
+  const relaxed = parseWorkbook(s.sheets, "EN", [], { checkNewlines: false }).units;
+  const strict = parseWorkbook(s.sheets, "EN").units;
+  assert.throws(() => applyDraft(s.host, s.bookKey, relaxed[0], strict, value), /换行标记/);
+  await assert.rejects(applyCurrentSuggestion(s.host, s.bookKey, relaxed[0], strict), /未通过/);
+  const batch = await applySuggestions(s.host, s.bookKey, [relaxed[0]], strict);
+  assert.equal(batch.changes.length, 0);
+  assert.equal(s.cells.get("Language!F2").Value2, "");
+  const accepted = await applySuggestions(s.host, s.bookKey, [strict[0]], relaxed);
+  assert.equal(accepted.changes.length, 1);
+  assert.equal(s.cells.get("Language!F2").Value2, value);
 });
 test("已有译文或不同的人工草稿合并确认，取消不写入", async () => {
   const s = setup(), u = s.units.find(u => u.key === "Welcome"), draft = { value: "My draft", reviewed: u };

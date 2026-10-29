@@ -1,14 +1,15 @@
 // 对齐 LocalizationWorkbench/Services/ProtectedTextService.cs。
-// 保留工作台的片段语法与自闭合标签集合；本插件允许译文新增字面量 \\n。
+// 保留工作台的片段语法与自闭合标签集合；字面量换行检查可由设置关闭。
 const selfClosing = new Set(["br", "sprite", "space", "quad", "page", "nobr"]);
 
 export function extractTokens(text) {
   return String(text ?? "").match(/\{[^{}\r\n]+\}|%(?:\d+\$)?[sdifuxX]|<\/?[A-Za-z][^<>\r\n]*?>|\\n/g) ?? [];
 }
 
-export function validateText(source, target) {
-  const expected = extractTokens(source);
-  const actual = extractTokens(target);
+export function validateText(source, target, { checkNewlines = true } = {}) {
+  const tokens = text => extractTokens(text).filter(token => checkNewlines || token !== "\\n");
+  const expected = tokens(source);
+  const actual = tokens(target);
   const counts = new Map();
   actual.forEach(t => counts.set(t, (counts.get(t) ?? 0) + 1));
   const missing = [];
@@ -18,7 +19,6 @@ export function validateText(source, target) {
   }
   const extra = [];
   counts.forEach((count, token) => {
-    if (token === "\\n") return; // 译文可按排版需要增加换行，不作为多余片段。
     for (let i = 0; i < count; i++) extra.push(token);
   });
   const errors = [];
