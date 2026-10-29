@@ -143,16 +143,17 @@ function manualGroups(sheet, profile) {
 }
 
 export function inspectWorkbook(sheets, profiles = []) {
-  const groups = [], diagnostics = [];
+  const groups = [], diagnostics = [], diagnosticsBySheet = new Map(sheets.map(sheet => [sheet.name, []]));
   for (const sheet of sheets) {
-    if (sheet.error) { diagnostics.push(sheet.name + "：" + sheet.error); continue; }
+    const report = (...items) => { diagnostics.push(...items); diagnosticsBySheet.get(sheet.name).push(...items); };
+    if (sheet.error) { report(sheet.name + "：" + sheet.error); continue; }
     if (!sheet.rows || sheet.name === "总览") continue;
     const manual = profiles.filter(p => p?.headerRow && p.signature === schemaSignature(sheet, p.headerRow));
     if (manual.length) {
       try {
         if (manual.length !== 1) throw new Error("有多个可匹配的手动配置，请在识别设置中清除后重新映射。");
         groups.push(...manualGroups(sheet, manual[0]).map(g => ({ ...g, sheet: sheet.name, manual: true })));
-      } catch (error) { diagnostics.push(sheet.name + "：" + error.message); }
+      } catch (error) { report(sheet.name + "：" + error.message); }
       continue;
     }
     const candidates = [];
@@ -164,13 +165,13 @@ export function inspectWorkbook(sheets, profiles = []) {
     }
     candidates.sort((a, b) => b.score - a.score);
     const best = candidates[0];
-    if (!best) { if (sheet.rows > 1) diagnostics.push(sheet.name + "：未找到可确认的 Key、原文和目标语言关系，请展开“识别设置”映射一次。"); continue; }
+    if (!best) { if (sheet.rows > 1) report(sheet.name + "：未找到可确认的 Key、原文和目标语言关系，请展开“识别设置”映射一次。"); continue; }
     if (candidates[1]?.score === best.score && JSON.stringify(best.groups) !== JSON.stringify(candidates[1].groups)) {
-      diagnostics.push(sheet.name + "：存在多个同等可信的表头结构，请设置字段映射。"); continue;
+      report(sheet.name + "：存在多个同等可信的表头结构，请设置字段映射。"); continue;
     }
     groups.push(...best.groups.map(g => ({ ...g, sheet: sheet.name, manual: false })));
-    diagnostics.push(...best.issues.map(issue => sheet.name + "：" + issue));
+    report(...best.issues.map(issue => sheet.name + "：" + issue));
   }
   const languages = unique(groups.flatMap(g => g.targets.map(t => t.language)));
-  return { groups, languages, diagnostics };
+  return { groups, languages, diagnostics, diagnosticsBySheet };
 }

@@ -30,7 +30,8 @@ export async function revalidateUnits(units, options = {}, { yieldControl = () =
 
 export function parseWorkbook(sheets, language, profiles = [], options = {}) {
   const validationOptions = { checkNewlines: options.checkNewlines !== false };
-  const schema = inspectWorkbook(sheets, profiles), units = [], diagnostics = [...schema.diagnostics];
+  const schema = inspectWorkbook(sheets, profiles), units = [];
+  const diagnosticsBySheet = new Map([...schema.diagnosticsBySheet].map(([name, items]) => [name, [...items]]));
   const targetLanguage = canonicalLanguage(language);
   for (const group of schema.groups) {
     const target = group.targets.find(t => t.language === targetLanguage);
@@ -67,7 +68,7 @@ export function parseWorkbook(sheets, language, profiles = [], options = {}) {
         untranslated: isBlank(value), ...textChecks({ source, target: value, ai }, validationOptions),
       });
     }
-    if (missingKeys) diagnostics.push(group.sheet + " · " + field + "：有 " + missingKeys + " 条非空原文缺少 Key，未计入任务，请核实。");
+    if (missingKeys) diagnosticsBySheet.get(group.sheet).push(group.sheet + " · " + field + "：有 " + missingKeys + " 条非空原文缺少 Key，未计入任务，请核实。");
   }
   const counts = new Map();
   const scopedKey = unit => JSON.stringify([unit.sheet, unit.key]);
@@ -79,7 +80,7 @@ export function parseWorkbook(sheets, language, profiles = [], options = {}) {
     unit.duplicate = counts.get(scopedKey(unit)) > 1;
     if (unit.duplicate) unit.errors.push("当前工作表内重复 Key：" + unit.key);
   }
-  return { language: targetLanguage, units, diagnostics };
+  return { language: targetLanguage, units, diagnostics: [...diagnosticsBySheet.values()].flat(), diagnosticsBySheet };
 }
 
 export function statistics(units) {

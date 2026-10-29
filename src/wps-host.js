@@ -75,6 +75,17 @@ export class WpsHost {
     this.assertBook(bookKey);
     return { bookKey, name: text(book.Name), sheets };
   }
+  async snapshotSheets(names, bookKey, onProgress = () => {}) {
+    this.assertBook(bookKey);
+    const book = this.activeBook(), sheets = [], uniqueNames = [...new Set(names)];
+    for (const name of uniqueNames) {
+      this.assertBook(bookKey);
+      onProgress("核对当前工作表 · " + name);
+      sheets.push(await this.readSheet(this.sheet(name, bookKey), bookKey));
+    }
+    this.assertBook(bookKey);
+    return { bookKey, name: text(book.Name), sheets };
+  }
   selection() {
     const sheet = this.app.ActiveSheet, range = this.app.Selection;
     return sheet && range ? { sheet: text(sheet.Name), row: Number(range.Row), column: Number(range.Column) } : null;

@@ -12,6 +12,7 @@ import { loadProfiles, setupMapping } from "./mapping-ui.js";
 import { setupUpdateControls } from "./update-ui.js";
 import { copyText } from "./clipboard.js";
 import { setupValidationSettings } from "./validation-settings.js";
+import { readSheetScope, mergeSheetScope } from "./sheet-refresh.js";
 
 const $ = id => document.getElementById(id);
 const host = new WpsHost(window.Application);
@@ -78,6 +79,9 @@ function updateLanguages(languages) {
 }
 function rebuild() {
   state.model = state.snapshot ? parseWorkbook(state.snapshot.sheets, state.language, state.profiles, state.validationOptions) : { units: [], diagnostics: [] };
+  renderModel();
+}
+function renderModel() {
   const previous = $("sheet").value, names = [...new Set(state.model.units.map(u => u.sheet))];
   $("sheet").replaceChildren(option("", "全部工作表"), ...names.map(n => option(n, n)));
   $("sheet").value = names.includes(previous) ? previous : "";
@@ -263,21 +267,41 @@ function goNext(skip = false) {
   else { message("当前范围没有可继续填写的任务，请查看交付检查和识别提示。", "success"); if (!$("sheet").value && !$("search").value) setStage("delivery"); renderDelivery(); }
 }
 function journal(changes) { if (!changes.length) return; state.journal = changes; state.journalBook = state.snapshot.bookKey; state.journals.set(state.journalBook, changes); }
+async function refreshWrittenSheet(unit, bookKey) {
+  busy(true); state.checkedAt = null;
+  try {
+    const scope = await readSheetScope(host, bookKey, [unit.sheet], state.language, state.profiles, state.validationOptions,
+      () => message("更新当前工作表 · " + unit.sheet));
+    host.assertBook(bookKey);
+    if (!state.snapshot) throw new Error("当前任务已变化，请重新识别。");
+    const updated = mergeSheetScope(state.snapshot, state.model, scope);
+    state.snapshot = updated.snapshot; state.model = updated.model;
+    renderModel();
+    return "";
+  } catch (error) {
+    state.fullRefresh = true;
+    return "当前工作表未能刷新，将重新识别。" + (error.message || String(error));
+  } finally {
+    busy(false);
+    if (state.fullRefresh || state.dirty.size) schedule();
+  }
+}
 async function commit() {
   const u = current(), draft = draftFor(u);
   if (state.busy || !u || !draft) return;
   const key = state.snapshot.bookKey; busy(true); state.writing = true;
-  let success = false;
+  let success = false, failure = "";
   try {
-    const fresh = await host.snapshot(v => message("写入前核对 · " + v));
-    const model = parseWorkbook(fresh.sheets, state.language, state.profiles, state.validationOptions);
-    const change = applyDraft(host, key, draft.reviewed, model.units, draft.value);
+    const scope = await readSheetScope(host, key, [u.sheet], state.language, state.profiles, state.validationOptions,
+      () => message("写入前核对 · " + u.sheet));
+    const change = applyDraft(host, key, draft.reviewed, scope.model.units, draft.value);
     if (change) journal([change]);
     bookDrafts().delete(draftKey(u)); success = true;
-  } catch (e) { message(e.message || String(e), "error"); }
+  } catch (e) { failure = e.message || String(e); }
   finally { state.writing = false; busy(false); }
-  if (success) { await scan(true); if (state.snapshot?.bookKey === key) { goNext(); message("译文已写入工作簿，已查找下一条待处理。请用 WPS 保存文件。", "success"); } }
-  else { const failure = $("message").textContent; await scan(true); message(failure, "error"); }
+  const refreshError = await refreshWrittenSheet(u, key);
+  if (success && !refreshError && state.snapshot?.bookKey === key) { goNext(); message("译文已写入工作簿，已查找下一条待处理。请用 WPS 保存文件。", "success"); }
+  else message([failure, success && refreshError ? "译文已写入，请用 WPS 保存。" : "", refreshError].filter(Boolean).join("\n"), "error");
 }
 function useReference(type) {
   const u = current(); if (state.busy || !u) return;
@@ -295,9 +319,9 @@ async function adoptCurrent() {
   const key = state.snapshot.bookKey; busy(true); state.writing = true;
   let result, failure = "";
   try {
-    const fresh = await host.snapshot(v => message("采用前核对 · " + v));
-    const model = parseWorkbook(fresh.sheets, state.language, state.profiles, state.validationOptions);
-    result = await applyCurrentSuggestion(host, key, u, model.units, { draft,
+    const scope = await readSheetScope(host, key, [u.sheet], state.language, state.profiles, state.validationOptions,
+      () => message("采用前核对 · " + u.sheet));
+    result = await applyCurrentSuggestion(host, key, u, scope.model.units, { draft,
       confirm: ({ unit, discardDraft, overwriteExisting }) => window.confirm([
         overwriteExisting ? "将替换 " + unit.sheet + "!" + unit.cell + " 的现有译文。" : "将填写 " + unit.sheet + "!" + unit.cell + "。",
         discardDraft ? "本条有不同的未写入草稿，采用后将丢弃该草稿。" : "",
@@ -306,8 +330,10 @@ async function adoptCurrent() {
     if (result.changes.length) { journal(result.changes); bookDrafts().delete(draftKey(u)); }
     failure = result.error;
   } catch (e) { failure = e.message || String(e); }
-  finally { state.writing = false; busy(false); await scan(true); }
-  message(failure ? "未采用 AI。" + failure : result?.cancelled ? "已取消，译文和侧栏草稿均保留。" : "AI 建议已写入 " + u.sheet + "!" + u.cell + "。请核对并用 WPS 保存；点击下一条可继续。", failure ? "error" : "success");
+  finally { state.writing = false; busy(false); }
+  const refreshError = await refreshWrittenSheet(u, key);
+  const outcome = failure ? "未采用 AI。" + failure : result?.cancelled ? "已取消，译文和侧栏草稿均保留。" : "AI 建议已写入 " + u.sheet + "!" + u.cell + "。请核对并用 WPS 保存；点击下一条可继续。";
+  message([outcome, refreshError].filter(Boolean).join("\n"), failure || refreshError ? "error" : "success");
 }
 async function batch() {
   if (state.busy || !state.snapshot) return;
