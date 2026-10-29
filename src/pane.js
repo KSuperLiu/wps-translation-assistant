@@ -1,6 +1,7 @@
 import "./style.css";
 import "./mapping.css";
 import "./updates.css";
+import "./clipboard.css";
 import { WpsHost } from "./wps-host.js";
 import { discoverLanguages, parseWorkbook, selectedUnit, adoptionProblem, sameReviewedUnit, columnName } from "./model.js";
 import { applyDraft, applyCurrentSuggestion, applySuggestions, undoSuggestions } from "./operations.js";
@@ -8,6 +9,7 @@ import { isBlank } from "./validation.js";
 import { workflowSummary, workflowUnits, nextPending, taskKind, processingStatus, draftProblem, sourceDifference } from "./workflow.js";
 import { loadProfiles, setupMapping } from "./mapping-ui.js";
 import { setupUpdateControls } from "./update-ui.js";
+import { copyText } from "./clipboard.js";
 
 const $ = id => document.getElementById(id);
 const host = new WpsHost(window.Application);
@@ -18,6 +20,7 @@ const state = { snapshot: null, model: { units: [], diagnostics: [] }, language:
   page: 0, stage: "receive", busy: false, writing: false, journal: [], journalBook: "", journals: new Map(),
   drafts: new Map(), fullRefresh: false, dirty: new Set(), timer: null, lastCommand: "", checkedAt: null, profiles: savedProfiles };
 const pageSize = 30, commandKey = "WpsTranslationAssistant.command";
+let copyRequest = 0;
 function message(value, kind = "") { $("message").textContent = value; $("message").className = kind; }
 function current() { return state.model.units.find(u => u.id === state.selected) ?? null; }
 function scope() { return { sheet: $("sheet").value, query: $("search").value }; }
@@ -55,6 +58,7 @@ function updateActions() {
   $("commit").disabled = state.busy || !draft || stale || !!draftProblem(u, draft?.value || "");
   $("skip").disabled = state.busy || !u;
   $("locate").disabled = state.busy || !u;
+  $("copy-key").disabled = state.busy || !u?.key;
   $("next").disabled = state.busy || !state.model.units.length;
   $("batch").disabled = state.busy || !filtered().some(u => u.untranslated && !adoptionProblem(u));
   $("undo").disabled = state.busy || !state.journal.length || state.journalBook !== state.snapshot?.bookKey;
@@ -114,6 +118,11 @@ function renderCurrent() {
   const u = current();
   $("current-content").hidden = !u;
   $("current-meta").hidden = !!u;
+  if ($("current-key").textContent !== (u?.key || "")) {
+    copyRequest++;
+    $("copy-key-status").hidden = true;
+    $("copy-key-status").textContent = "";
+  }
   $("current-key").textContent = u?.key || "";
   $("current-location").textContent = u ? u.sheet + " · " + u.cell + " · " + u.field : "";
   $("current-meta").textContent = "在表格中选中译文，或点击下一条待处理。";
@@ -330,6 +339,25 @@ $("language").onchange = () => { state.language = $("language").value; state.sel
 for (const id of ["sheet", "filter", "search"]) $(id).addEventListener(id === "search" ? "input" : "change", () => { state.page = 0; renderList(); updateActions(); });
 $("previous-page").onclick = () => { state.page--; renderList(); }; $("next-page").onclick = () => { state.page++; renderList(); };
 $("locate").onclick = () => { const u = current(); if (u) select(u, true); };
+$("copy-key").onclick = async () => {
+  const key = current()?.key;
+  if (!key || state.busy) return;
+  const request = ++copyRequest, status = $("copy-key-status");
+  $("copy-key").disabled = true;
+  status.hidden = true;
+  try {
+    await copyText(key);
+    if (request !== copyRequest) return;
+    status.textContent = "Key 已复制";
+    status.className = "muted";
+    status.hidden = false;
+  } catch (error) {
+    if (request !== copyRequest) return;
+    status.textContent = error.message;
+    status.className = "problem-text";
+    status.hidden = false;
+  } finally { updateActions(); }
+};
 $("next").onclick = () => goNext(); $("skip").onclick = () => goNext(true);
 $("target").oninput = () => rememberDraft($("target").value);
 $("adopt").onclick = adoptCurrent; $("load-ai").onclick = () => useReference("ai"); $("use-old").onclick = () => useReference("old");

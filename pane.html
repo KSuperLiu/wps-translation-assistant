@@ -27,7 +27,7 @@
         <button id="discard-draft" class="text-button" hidden>丢弃本条草稿，重新载入当前译文</button>
         <details id="ai-box" open><summary>表内 AI 建议</summary><pre id="ai" class="ai-text"></pre><div id="ai-errors" class="problem-text"></div><div class="write-actions"><button id="adopt" class="primary" disabled>采用 AI 并写入</button><button id="load-ai" class="text-button" disabled>先载入草稿</button></div><p class="muted">直接采用会填写当前译文，仍需用 WPS 保存。建议来自表内，格式通过仍需核对含义和术语。</p></details>
         <div class="write-actions"><button id="commit" class="primary" disabled>写入并下一条</button><button id="skip" disabled>暂跳过</button></div>
-        <details id="current-details"><summary>条目信息</summary><p id="current-location" class="muted"></p><p id="current-key" class="key"></p></details>
+        <details id="current-details"><summary>条目信息</summary><p id="current-location" class="muted"></p><div class="key-row"><p id="current-key" class="key"></p><button id="copy-key" class="text-button" aria-label="复制完整 Key" disabled>复制</button></div><p id="copy-key-status" class="muted" role="status" aria-live="polite" hidden></p></details>
       </div>
       <button id="next" class="full" disabled>下一条待处理 →</button><p class="muted">也可直接在表格中编辑。提交单元格后自动检查，再点击下一条。</p>
     </section>

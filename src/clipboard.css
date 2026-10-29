@@ -1,0 +1,3 @@
+.key-row{display:flex;align-items:baseline;gap:10px}
+.key-row .key{flex:1;min-width:0}
+.key-row button{flex-shrink:0}
