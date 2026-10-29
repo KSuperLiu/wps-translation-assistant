@@ -4,7 +4,7 @@ import "./updates.css";
 import "./clipboard.css";
 import "./validation-settings.css";
 import { WpsHost } from "./wps-host.js";
-import { discoverLanguages, parseWorkbook, selectedUnit, adoptionProblem, sameReviewedUnit, columnName } from "./model.js";
+import { discoverLanguages, parseWorkbook, revalidateUnits, selectedUnit, adoptionProblem, sameReviewedUnit, columnName } from "./model.js";
 import { applyDraft, applyCurrentSuggestion, applySuggestions, undoSuggestions } from "./operations.js";
 import { isBlank } from "./validation.js";
 import { workflowSummary, workflowUnits, nextPending, taskKind, processingStatus, draftProblem, sourceDifference } from "./workflow.js";
@@ -366,7 +366,17 @@ $("target").oninput = () => rememberDraft($("target").value);
 $("adopt").onclick = adoptCurrent; $("load-ai").onclick = () => useReference("ai"); $("use-old").onclick = () => useReference("old");
 $("discard-draft").onclick = () => { const u = current(); if (u && window.confirm("丢弃本条侧栏草稿并读取表格当前译文？")) { bookDrafts().delete(draftKey(u)); renderCurrent(); updateActions(); } };
 $("commit").onclick = commit; $("batch").onclick = batch; $("undo").onclick = undo;
-const validationSettings = setupValidationSettings({ getStorage: () => window.localStorage, changed: value => { state.validationOptions = value; state.page = 0; rebuild(); } });
+const validationSettings = setupValidationSettings({ getStorage: () => window.localStorage, changed: async value => {
+  state.validationOptions = value;
+  busy(true);
+  try {
+    const model = state.model, units = await revalidateUnits(model.units, value);
+    if (state.model === model) { state.model = { ...model, units }; state.page = 0; render(); }
+  } finally {
+    busy(false);
+    if (state.fullRefresh || state.dirty.size) schedule();
+  }
+} });
 state.validationOptions = validationSettings.value;
 const mapping = setupMapping({ state, getStorage: () => window.localStorage, message, changed: () => { if (!state.snapshot) return; state.journal = []; state.journals.delete(state.snapshot.bookKey); state.page = 0; state.selected = null; updateLanguages(discoverLanguages(state.snapshot.sheets, state.profiles)); rebuild(); } });
 const listeners = [];

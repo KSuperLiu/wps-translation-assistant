@@ -10,6 +10,24 @@ export function columnName(column) {
 export const address = (row, column) => columnName(column) + row;
 export const discoverLanguages = (sheets, profiles = []) => inspectWorkbook(sheets, profiles).languages;
 
+function textChecks(unit, validationOptions) {
+  const { source, target, ai } = unit;
+  const errors = isBlank(target) || isBlank(source) ? [] : validateText(source, target, validationOptions);
+  if (unit.duplicate) errors.push("当前工作表内重复 Key：" + unit.key);
+  return { validationOptions, errors, aiErrors: isBlank(ai) || isBlank(source) ? [] : validateText(source, ai, validationOptions) };
+}
+
+// 设置变化只重算校验，保留条目位置和识别结果；每批让出线程供控件刷新。
+export async function revalidateUnits(units, options = {}, { yieldControl = () => new Promise(resolve => setTimeout(resolve, 0)) } = {}) {
+  const validationOptions = { checkNewlines: options.checkNewlines !== false }, result = [];
+  await yieldControl();
+  for (let start = 0; start < units.length; start += 500) {
+    for (const unit of units.slice(start, start + 500)) result.push({ ...unit, ...textChecks(unit, validationOptions) });
+    if (start + 500 < units.length) await yieldControl();
+  }
+  return result;
+}
+
 export function parseWorkbook(sheets, language, profiles = [], options = {}) {
   const validationOptions = { checkNewlines: options.checkNewlines !== false };
   const schema = inspectWorkbook(sheets, profiles), units = [], diagnostics = [...schema.diagnostics];
@@ -45,8 +63,8 @@ export function parseWorkbook(sheets, language, profiles = [], options = {}) {
         language: targetLanguage, source, oldSource: oldSourceCol ? readCell(sheet, row, oldSourceCol) : "", target: value, ai, old: oldCol ? readCell(sheet, row, oldCol) : "",
         targetCol, sourceCol, aiCol, groupStart: Math.min(group.groupStart, group.groupEnd), groupEnd: Math.max(group.groupStart, group.groupEnd),
         cell: address(row, targetCol), sourceCell: address(row, sourceCol), aiCell: aiCol ? address(row, aiCol) : null,
-        referenceLanguages: group.referenceLanguages, guards, validationOptions,
-        untranslated: isBlank(value), errors: isBlank(value) || isBlank(source) ? [] : validateText(source, value, validationOptions), aiErrors: isBlank(ai) || isBlank(source) ? [] : validateText(source, ai, validationOptions),
+        referenceLanguages: group.referenceLanguages, guards,
+        untranslated: isBlank(value), ...textChecks({ source, target: value, ai }, validationOptions),
       });
     }
     if (missingKeys) diagnostics.push(group.sheet + " · " + field + "：有 " + missingKeys + " 条非空原文缺少 Key，未计入任务，请核实。");
