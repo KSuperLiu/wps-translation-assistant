@@ -15,9 +15,33 @@ const example = () => ({ name: "Task", rows: 6, columns: 7, values: [
 
 test("接表区分原文修订、补译、旧译复核和空原文，状态不混同任务类型", () => {
   const m = parseWorkbook([example()], "EN"), s = workflowSummary(m.units, m.diagnostics);
-  assert.deepEqual(m.units.map(taskKind), ["待修订", "待补译", "待补译", "旧译复核", "待补译"]);
-  assert.deepEqual({ total: s.total, revision: s.revision, translation: s.translation, review: s.review, unfilled: s.unfilled, errors: s.errors, filled: s.filled }, { total: 5, revision: 1, translation: 3, review: 1, unfilled: 3, errors: 1, filled: 2 });
+  assert.deepEqual(m.units.map(taskKind), ["待修订", "待补译", "待补译", "已填写", "已填写"]);
+  assert.deepEqual({ total: s.total, revision: s.revision, translation: s.translation, review: s.review, unfilled: s.unfilled, errors: s.errors, filled: s.filled }, { total: 5, revision: 1, translation: 2, review: 0, unfilled: 3, errors: 1, filled: 2 });
   assert.equal(s.ready, false);
+});
+
+test("当前译文已填写时不因旧译文为空而归为待补译，原文变化仍提示复核", () => {
+  const sheet = example();
+  sheet.values[1][5] = "DMG +10%";
+  sheet.values[2][5] = "Get {0}";
+  const units = parseWorkbook([sheet], "EN").units, s = workflowSummary(units);
+  assert.equal(taskKind(units[0]), "待修订");
+  assert.equal(taskKind(units[1]), "已填写");
+  assert.deepEqual(workflowUnits(units, { status: "translation" }).map(u => u.key), ["unclear"]);
+  assert.equal(workflowUnits(units, { status: "revision" }).length, 1);
+  assert.equal(s.filled, 4);
+  assert.equal(s.filled + s.unfilled, s.total);
+  assert.equal(workflowUnits(units, { status: "pending" }).some(u => u.key === "invalid"), true);
+});
+
+test("空白译文保留补译、原文修订和旧译参考分类，已填写零文本不当成空白", () => {
+  const sheet = example();
+  sheet.values[4][5] = " ";
+  sheet.values[5][5] = "0";
+  const units = parseWorkbook([sheet], "EN").units, s = workflowSummary(units);
+  assert.deepEqual(units.map(taskKind), ["待修订", "待补译", "待补译", "旧译复核", "已填写"]);
+  assert.deepEqual({ filled:s.filled, translation:s.translation, revision:s.revision, review:s.review }, { filled:1, translation:2, revision:1, review:1 });
+  assert.equal(s.filled + s.translation + s.revision + s.review, s.total);
 });
 test("自动读取旧原文并将旧原文、旧译文纳入写入前核对", () => {
   const u = parseWorkbook([example()], "EN").units[0];

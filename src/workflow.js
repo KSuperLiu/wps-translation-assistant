@@ -3,6 +3,7 @@ import { filterUnits } from "./model.js";
 
 export function taskKind(unit) {
   if (!isBlank(unit.oldSource) && unit.oldSource !== unit.source) return "待修订";
+  if (!isBlank(unit.target)) return "已填写";
   return isBlank(unit.old) ? "待补译" : "旧译复核";
 }
 export function processingStatus(unit) {

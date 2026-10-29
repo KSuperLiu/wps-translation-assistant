@@ -99,7 +99,7 @@ function render() {
   const s = workflowSummary(state.model.units, state.model.diagnostics);
   $("book").textContent = state.snapshot?.name || "请打开翻译工作簿。";
   $("receive-summary").textContent = s.total ? state.language + " · " + s.sheets + " 张翻译工作表 · " + s.total.toLocaleString() + " 条记录" : "请选择目标语言，或展开“更多 → 识别设置”核实列关系。";
-  rows($("task-breakdown"), [["原文变更，需修订", s.revision], ["没有旧译文，需补译", s.translation], ...(s.review ? [["有旧译文，可复核沿用", s.review]] : [])]);
+  rows($("task-breakdown"), [["已填写译文", s.filled], ["空译文，需补译", s.translation], ["原文有变更，需复核", s.revision], ...(s.review ? [["空译文，有旧译文可参考", s.review]] : [])]);
   const targets = [...new Set(state.model.units.map(u => columnName(u.targetCol)))];
   $("target-guide").textContent = s.total ? "只填写 " + state.language + " 最终译文列（本表涉及 " + targets.join("、") + " 列），原文、旧译文、AI 和 Key 保持原有用途。表内提供 " + s.ai + " 条 AI 建议。" : "列关系确认后才允许写入。";
   $("receive-warning").hidden = !s.diagnostics;
