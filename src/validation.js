@@ -1,5 +1,5 @@
 // 对齐 LocalizationWorkbench/Services/ProtectedTextService.cs。
-// 刻意保留工作台的片段语法与自闭合标签集合，避免两端规则不一致。
+// 保留工作台的片段语法与自闭合标签集合；本插件允许译文新增字面量 \\n。
 const selfClosing = new Set(["br", "sprite", "space", "quad", "page", "nobr"]);
 
 export function extractTokens(text) {
@@ -17,7 +17,10 @@ export function validateText(source, target) {
     else missing.push(token);
   }
   const extra = [];
-  counts.forEach((count, token) => { for (let i = 0; i < count; i++) extra.push(token); });
+  counts.forEach((count, token) => {
+    if (token === "\\n") return; // 译文可按排版需要增加换行，不作为多余片段。
+    for (let i = 0; i < count; i++) extra.push(token);
+  });
   const errors = [];
   for (const [tokens, direction, prefix] of [[missing, "少", "缺少受保护片段："], [extra, "多", "新增或修改了受保护片段："]]) {
     const newlineCount = tokens.filter(token => token === "\\n").length;

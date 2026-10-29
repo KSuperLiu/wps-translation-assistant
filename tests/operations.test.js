@@ -30,6 +30,21 @@ test("单条 AI 一键填空，无额外确认，且可撤销", async () => {
   assert.equal(s.cells.get("Language!F2").Value2, u.ai);
   assert.equal((await undoSuggestions(s.host, s.bookKey, r.changes)).restored, 1);
 });
+
+test("新增字面量换行不阻止人工草稿或表内 AI 建议写入，写入保留完整文本", async () => {
+  const value = "Get {0}\\ncoins";
+  const draft = setup();
+  applyDraft(draft.host, draft.bookKey, draft.units[0], draft.units, value);
+  assert.equal(draft.cells.get("Language!F2").Value2, value);
+  const ai = setup();
+  ai.sheets[1].values[1][6] = value;
+  ai.cells.get("Language!G2").Value2 = value;
+  const units = parseWorkbook(ai.sheets, "EN").units;
+  assert.deepEqual(units[0].aiErrors, []);
+  const result = await applyCurrentSuggestion(ai.host, ai.bookKey, units[0], units);
+  assert.equal(result.changes.length, 1);
+  assert.equal(ai.cells.get("Language!F2").Value2, value);
+});
 test("已有译文或不同的人工草稿合并确认，取消不写入", async () => {
   const s = setup(), u = s.units.find(u => u.key === "Welcome"), draft = { value: "My draft", reviewed: u };
   let confirms = 0;

@@ -15,6 +15,22 @@ test("格式占位符、命名参数、转义换行与属性原样保留", () =>
   assert.deepEqual(validateText(source, source), []);
   assert.ok(validateText(source, source.replace("#fff", "#000")).length === 2);
 });
+
+test("允许译文新增一个或多个字面量换行标记，不要求数量与原文相等", () => {
+  assert.deepEqual(validateText("你好", "Hello\\nworld\\n"), []);
+  assert.deepEqual(validateText("你好\\n世界 {0}", "Hello\\n\\nworld {0}\\n"), []);
+});
+
+test("原文已有的字面量换行被删减时仍提示，单元格实际换行不能替代它", () => {
+  assert.deepEqual(validateText("你好\\n世界\\n", "Hello\\nworld"), ["译文比原文少了 1 个换行标记 \\n（反斜杠 + n，不是单元格实际换行）"]);
+  assert.ok(validateText("你好\\n世界", "Hello\nworld").some(e => e.includes("少了 1 个换行标记")));
+});
+
+test("允许额外换行不放过占位符缺失、额外占位符和标签错误", () => {
+  assert.deepEqual(validateText("{0} {0}", "{0}\\n"), ["缺少受保护片段：{0}"]);
+  assert.deepEqual(validateText("{0}", "{0}\\n{1}"), ["新增或修改了受保护片段：{1}"]);
+  assert.ok(validateText("<b>{0}</b>", "<b>{0}\\n").some(e => e.includes("未闭合")));
+});
 test("标签嵌套次序错误及自闭合标签与工作台一致", () => {
   assert.ok(validateText("<b><i>x</i></b>", "<b><i>x</b></i>").some(e => e.includes("顺序")));
   assert.deepEqual(validateText('<sprite name="fish"><br><space=2>', '<sprite name="fish"><br><space=2>'), []);
