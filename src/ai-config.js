@@ -27,8 +27,7 @@ export function loadAISettings(storage) {
 export function normalizeAIBaseURL(value, provider = "compatible") {
   let url;
   try { url = new URL(String(value).trim()); } catch { throw new Error("请填写完整的 AI 服务地址，例如 https://ai.example.com/v1。"); }
-  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (url.protocol !== "https:" && !(local && url.protocol === "http:")) throw new Error("AI 服务地址需使用 HTTPS；本机服务可用 HTTP。");
+  if (!["http:", "https:"].includes(url.protocol)) throw new Error("请使用 HTTP 或 HTTPS 的 AI 服务地址。");
   if (url.username || url.password || url.search || url.hash) throw new Error("服务地址不能包含账号、Key、查询参数或 # 片段。");
   let pathname = url.pathname.replace(/\/+$/, "");
   if (/\/(chat\/completions|messages|models|responses)$/.test(pathname)) throw new Error("请填写 API 基础地址，不要包含 chat/completions、messages、models 或 responses。");

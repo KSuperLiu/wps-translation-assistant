@@ -28,7 +28,23 @@ test("LiteLLM 基础地址规范化保留反向代理路径和模型别名", () 
   assert.equal(normalizeAIBaseURL("http://localhost:4000/v1/", "litellm"), "http://localhost:4000/v1");
   assert.equal(normalizeAIBaseURL("http://localhost:4000", "litellm"), "http://localhost:4000/v1");
   assert.equal(resolveAIConnection(config, true).model, "team-localizer");
-  for (const url of ["javascript:alert(1)", "http://remote.example", "https://user:key@gw.example", "https://gw.example?key=secret", "https://gw.example/#secret", "https://gw.example/v1/chat/completions"]) assert.throws(() => normalizeAIBaseURL(url));
+  for (const url of ["javascript:alert(1)", "file:///tmp/api", "ftp://remote.example", "https://user:key@gw.example", "https://gw.example?key=secret", "https://gw.example/#secret", "https://gw.example/v1/chat/completions"]) assert.throws(() => normalizeAIBaseURL(url));
+});
+test("内网 IP 和远程域名的 HTTP 地址可直接读取模型和生成译文", async () => {
+  for (const baseURL of ["http://192.168.1.20:4000", "http://litellm.internal/team", "http://gateway.example:8080/v1"]) {
+    const settings = { ...config, baseURL }, normalized = normalizeAIBaseURL(baseURL, "litellm");
+    const calls = [];
+    const fetcher = async (url, options) => {
+      calls.push(url);
+      assert.equal(new Headers(options.headers).get("authorization"), "Bearer fake-virtual-key");
+      if (url === normalized + "/models") return json({ data: [{ id: config.model }] });
+      assert.equal(url, normalized + "/chat/completions");
+      return completion();
+    };
+    assert.deepEqual(await listAIModels(settings, { fetcher }), [config.model]);
+    assert.equal(await generateAITranslation(settings, unit, { fetcher }), "Get {0}\\n<color=red>coins</color>");
+    assert.equal(calls.length, 2);
+  }
 });
 test("旧版环境变量选项被忽略，直接使用粘贴的 Key 与配置网关", () => {
   const result = resolveAIConnection({ ...config, useEnv: true, bridgeToken: "obsolete-pair-code" });

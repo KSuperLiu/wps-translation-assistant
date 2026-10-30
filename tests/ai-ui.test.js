@@ -18,12 +18,12 @@ function fixture(options = {}) {
 }
 test("AI 初始化不请求或改配置，粘贴后保存 Key 并在重开时恢复全部配置", () => {
   const f = fixture(); assert.equal(f.calls(), 0); assert.deepEqual(f.loads, []); assert.equal(f.stored(), null);
-  f.$("ai-base-url").value = "https://gateway.example/v1"; f.$("ai-base-url").oninput();
+  f.$("ai-base-url").value = "http://192.168.1.20:4000/v1"; f.$("ai-base-url").oninput();
   f.$("ai-model").value = "team-model"; f.$("ai-model").oninput();
   f.$("ai-key").value = "private-key"; f.$("ai-key").oninput();
   assert.equal(JSON.parse(f.stored()).apiKey, "private-key");
   const reopened = fixture({ saved: f.stored() });
-  assert.equal(reopened.$("ai-base-url").value, "https://gateway.example/v1");
+  assert.equal(reopened.$("ai-base-url").value, "http://192.168.1.20:4000/v1");
   assert.equal(reopened.$("ai-model").value, "team-model");
   assert.equal(reopened.$("ai-key").value, "private-key");
   assert.equal(reopened.calls(), 0);
