@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadAISettings, publicAISettings, resolveAIConnection, normalizeAIBaseURL } from "../src/ai-config.js";
+import { loadAISettings, publicAISettings, storedAISettings, resolveAIConnection, normalizeAIBaseURL } from "../src/ai-config.js";
 import { generateAITranslation, listAIModels, safeAIError, boundedFetch, translationPrompt } from "../src/ai-client.js";
 
 const config = { provider: "litellm", baseURL: "https://gateway.example/ai", model: "team-localizer", apiKey: "fake-virtual-key" };
@@ -9,11 +9,19 @@ const json = (value, status = 200) => Response.json(value, { status });
 const completion = (content = "Get {0}\\n<color=red>coins</color>", finish = "stop") => json({ id: "mock", created: 1, model: "team-localizer", object: "chat.completion", choices: [{ index: 0, message: { role: "assistant", content }, finish_reason: finish }], usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 } });
 
 test("AI 设置只持久化服务、地址和模型，忽略旧凭据模式", () => {
-  assert.deepEqual(loadAISettings({ getItem: () => null }), { provider: "litellm", baseURL: "", model: "" });
+  assert.deepEqual(loadAISettings({ getItem: () => null }), { provider: "litellm", baseURL: "", model: "", apiKey: "" });
   for (const raw of ["null", "[", '{"provider":"bad","useEnv":true}']) assert.equal(loadAISettings({ getItem: () => raw }).provider, "litellm");
   const value = publicAISettings({ ...config, apiKey: "secret", bridgeToken: "pair-secret", useEnv: true });
   assert.equal(value.useEnv, undefined); assert.doesNotMatch(JSON.stringify(value), /secret|apiKey|bridgeToken|useEnv/);
   assert.equal(publicAISettings({ provider: "openai", useEnv: true }).useEnv, undefined);
+});
+test("本机配置保存并恢复 Key，仅接受字符串并忽略旧连接模式", () => {
+  const saved = storedAISettings({ ...config, apiKey: "  local-test-key  ", useEnv: true, bridgeToken: "obsolete" });
+  assert.equal(saved.apiKey, "local-test-key");
+  assert.deepEqual(loadAISettings({ getItem: () => JSON.stringify(saved) }), saved);
+  assert.doesNotMatch(JSON.stringify(saved), /useEnv|bridgeToken|obsolete/);
+  for (const apiKey of [null, 123, {}, "line1\nline2"]) assert.equal(storedAISettings({ apiKey }).apiKey, "");
+  assert.equal(loadAISettings({ getItem: () => { throw new Error("storage blocked"); } }).apiKey, "");
 });
 test("LiteLLM 基础地址规范化保留反向代理路径和模型别名", () => {
   assert.equal(normalizeAIBaseURL(" https://gateway.example/team/ ", "litellm"), "https://gateway.example/team/v1");

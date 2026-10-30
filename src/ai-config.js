@@ -16,9 +16,13 @@ export function publicAISettings(value = {}) {
   return { provider: provider.id, baseURL: typeof value.baseURL === "string" ? value.baseURL : provider.baseURL,
     model: typeof value.model === "string" ? value.model.slice(0, 256) : "" };
 }
+export function storedAISettings(value = {}) {
+  const apiKey = typeof value.apiKey === "string" ? value.apiKey.trim() : "";
+  return { ...publicAISettings(value), apiKey: /[\r\n]/.test(apiKey) ? "" : apiKey };
+}
 export function loadAISettings(storage) {
-  try { return publicAISettings(JSON.parse(storage.getItem(AI_SETTINGS_KEY)) || {}); }
-  catch { return publicAISettings(); }
+  try { return storedAISettings(JSON.parse(storage.getItem(AI_SETTINGS_KEY)) || {}); }
+  catch { return storedAISettings(); }
 }
 export function normalizeAIBaseURL(value, provider = "compatible") {
   let url;

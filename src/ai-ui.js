@@ -1,4 +1,4 @@
-import { AI_PROVIDERS, AI_SETTINGS_KEY, loadAISettings, publicAISettings, providerFor, normalizeAIBaseURL } from "./ai-config.js";
+import { AI_PROVIDERS, AI_SETTINGS_KEY, loadAISettings, storedAISettings, providerFor, normalizeAIBaseURL } from "./ai-config.js";
 import { sameReviewedUnit } from "./model.js";
 import { validateText } from "./validation.js";
 
@@ -13,13 +13,14 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
   confirm = message => globalThis.confirm(message), listModels = listAIModels, generate = generateAITranslation }) {
   const $ = id => document.getElementById(id);
   let settings;
-  try { settings = loadAISettings(getStorage()); } catch { settings = publicAISettings(); }
+  try { settings = loadAISettings(getStorage()); } catch { settings = storedAISettings(); }
   let result = null, request = null, counter = 0;
   for (const provider of AI_PROVIDERS) {
     const option = document.createElement("option"); option.value = provider.id; option.textContent = provider.name; $("ai-provider").append(option);
   }
   $("ai-provider").value = settings.provider; $("ai-base-url").value = settings.baseURL;
   $("ai-model").value = settings.model;
+  $("ai-key").value = settings.apiKey;
   const config = () => ({ provider: $("ai-provider").value, baseURL: $("ai-base-url").value,
     model: $("ai-model").value, apiKey: $("ai-key").value });
   function status(text) { $("online-ai-status").textContent = text; $("ai-connection-status").textContent = text; }
@@ -41,10 +42,10 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
     if (result) $("online-ai-errors").textContent = validateText(context.unit.source, result.text, context.unit.validationOptions).map(e => e.message || e).join("；");
   }
   function persist() {
-    settings = publicAISettings(config());
+    settings = storedAISettings(config());
     // 不保存误粘贴到 URL 的凭据或查询参数；输入框仍保留原值供用户修改。
     try { settings.baseURL = normalizeAIBaseURL(settings.baseURL, settings.provider); } catch { settings.baseURL = ""; }
-    try { getStorage().setItem(AI_SETTINGS_KEY, JSON.stringify(settings)); $("ai-settings-status").textContent = "配置已保存在本机；Key 仅本次窗格会话保留。"; }
+    try { getStorage().setItem(AI_SETTINGS_KEY, JSON.stringify(settings)); $("ai-settings-status").textContent = "地址、模型和 Key 已保存在本机，下次打开自动恢复。"; }
     catch { $("ai-settings-status").textContent = "本机存储不可用，配置仅在本次窗格会话生效。"; }
   }
   function changed() {
@@ -61,7 +62,7 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
     if (id === "ai-base-url") { $("ai-key").value = ""; $("ai-model-options").replaceChildren(); }
     changed();
   };
-  $("ai-clear-key").onclick = () => { $("ai-key").value = ""; changed(); status("已清除本次会话的 Key。"); };
+  $("ai-clear-key").onclick = () => { $("ai-key").value = ""; changed(); status("已清除保存的 Key。"); };
   $("online-ai-cancel").onclick = () => cancel();
   $("ai-settings-cancel").onclick = () => cancel();
   async function run(type) {

@@ -9,17 +9,43 @@ function fixture(options = {}) {
   const $ = id => { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); };
   let context = { bookKey: "book-a", draft: "", busy: false, unit: { id: "1", language: "EN", source: "金币 {0}", target: "", guards: [] } };
   const ui = setupOnlineAI({ document: { getElementById: $, createElement: element },
-    getStorage: () => ({ getItem: () => stored, setItem: (_key, value) => { stored = value; } }),
+    getStorage: () => options.storage || ({ getItem: () => stored, setItem: (_key, value) => { stored = value; } }),
     getContext: () => context, loadDraft: value => { loads.push(value); context = { ...context, draft: value }; },
     confirm: options.confirm || (() => true),
     listModels: options.listModels || (async () => { calls++; return ["team-translator"]; }),
     generate: options.generate || (async () => { calls++; return "Coins {0}"; }) });
   return { $, ui, calls: () => calls, loads, stored: () => stored, context: () => context, setContext: value => { context = value; } };
 }
-test("AI 初始化不请求，不写入，粘贴 Key 不存储", () => {
+test("AI 初始化不请求或改配置，粘贴后保存 Key 并在重开时恢复全部配置", () => {
   const f = fixture(); assert.equal(f.calls(), 0); assert.deepEqual(f.loads, []); assert.equal(f.stored(), null);
+  f.$("ai-base-url").value = "https://gateway.example/v1"; f.$("ai-base-url").oninput();
+  f.$("ai-model").value = "team-model"; f.$("ai-model").oninput();
   f.$("ai-key").value = "private-key"; f.$("ai-key").oninput();
-  assert.doesNotMatch(f.stored(), /private|apiKey|bridgeToken/);
+  assert.equal(JSON.parse(f.stored()).apiKey, "private-key");
+  const reopened = fixture({ saved: f.stored() });
+  assert.equal(reopened.$("ai-base-url").value, "https://gateway.example/v1");
+  assert.equal(reopened.$("ai-model").value, "team-model");
+  assert.equal(reopened.$("ai-key").value, "private-key");
+  assert.equal(reopened.calls(), 0);
+});
+test("清除保存的 Key 后重开为空，地址和模型保持", () => {
+  const f = fixture({ saved: JSON.stringify({ provider: "litellm", baseURL: "https://gateway.example/v1", model: "team-model", apiKey: "saved-key" }) });
+  f.$("ai-clear-key").onclick();
+  assert.equal(JSON.parse(f.stored()).apiKey, "");
+  const reopened = fixture({ saved: f.stored() });
+  assert.equal(reopened.$("ai-key").value, ""); assert.equal(reopened.$("ai-model").value, "team-model");
+  assert.equal(reopened.$("ai-base-url").value, "https://gateway.example/v1");
+});
+test("修改服务地址会同步移除已保存的 Key", () => {
+  const f = fixture({ saved: JSON.stringify({ provider: "litellm", baseURL: "https://gateway.example/v1", model: "team-model", apiKey: "saved-key" }) });
+  f.$("ai-base-url").value = "https://other.example/v1"; f.$("ai-base-url").oninput();
+  assert.equal(JSON.parse(f.stored()).apiKey, ""); assert.equal(f.$("ai-key").value, "");
+});
+test("存储被禁用时明确提示仅本次会话生效，仍可填写 Key", () => {
+  const f = fixture({ storage: { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } } });
+  f.$("ai-key").value = "session-test-key"; f.$("ai-key").oninput();
+  assert.equal(f.$("ai-key").value, "session-test-key");
+  assert.match(f.$("ai-settings-status").textContent, /存储不可用.*本次窗格会话/);
 });
 test("误粘贴到地址中的凭据和查询 Key 不会持久化", () => {
   const f = fixture();
@@ -39,7 +65,8 @@ test("旧版保存的环境变量选项不会阻止直接粘贴 Key", async () =
   await f.$("ai-models").onclick();
   assert.equal(received.apiKey, "pasted-virtual-key");
   assert.equal(received.useEnv, undefined); assert.equal(received.bridgeToken, undefined);
-  assert.doesNotMatch(f.stored(), /pasted-virtual-key|useEnv|bridgeToken/);
+  assert.equal(JSON.parse(f.stored()).apiKey, "pasted-virtual-key");
+  assert.doesNotMatch(f.stored(), /useEnv|bridgeToken/);
 });
 test("切换官方服务清空旧 Key 和模型", () => {
   const f = fixture(); f.$("ai-key").value = "old-key";
