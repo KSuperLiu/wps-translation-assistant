@@ -43,14 +43,11 @@
         </section>
         <section id="online-ai" class="guide-section">
           <h2>在线 AI 配置</h2>
-          <p>打开<strong>更多 → AI 设置</strong>，选择服务商或网关，填写 Key，点击<strong>读取模型列表 / 测试连接</strong>，再选择或输入模型名称。地址、模型和开关会保存在本机；Key 与本机连接码只保留在本次窗格会话，关闭后需要重新填写。</p>
+          <p>打开<strong>更多 → AI 设置</strong>，选择服务商或网关，直接复制并粘贴 Key，点击<strong>读取模型列表 / 测试连接</strong>，再选择或输入模型名称。地址和模型会保存在本机；Key 只保留在本次窗格会话，关闭后需要重新填写。</p>
           <h3>统一网关或厂商官方 Key</h3>
           <p><strong>LiteLLM：</strong>填写管理员提供的 API 基础地址（例如 <code>https://ai.example.com/v1</code>）和虚拟 Key，使用网关开放的模型别名。网关管理上游厂商凭据，一个虚拟 Key 能使用哪些模型由管理员决定。</p>
           <p><strong>OpenRouter：</strong>选择后会预填地址，用对应 Key 读取模型。<strong>OpenAI、Anthropic、Gemini、DeepSeek、通义千问：</strong>使用各自服务的官方 Key；通义千问需选择 Key 对应的地域。其他服务可选择“其他 OpenAI 兼容服务”，填入完整基础地址。切换服务或修改地址会清空手填 Key，防止误发给另一个服务。</p>
-          <h3>勾选使用环境变量 LITELLM_API_KEY</h3>
-          <p>仅 LiteLLM 提供此选项，默认不勾选。勾选后禁用手填 Key，由<strong>本机连接服务</strong>读取它所在进程的 <code>LITELLM_API_KEY</code>。真实 Key 不返回窗格；取消勾选立即恢复手填 Key。这个可选模式需本机安装 Node.js 22.12 或更新版本，基础翻译、网页安装及手填 Key 模式不需要 Node.js。</p>
-          <ol><li>由管理员或开发人员<a href="./ai-local-bridge.mjs" download="ai-local-bridge.mjs">下载本机连接服务脚本</a>。在启动服务的环境中设置 <code>LITELLM_API_KEY</code>，值为该网关的虚拟 Key。不要把真实 Key 写入插件、文档或表格。</li><li>在脚本所在目录运行以下命令，替换网关地址：<pre class="guide-code"><code>node ./ai-local-bridge.mjs --base-url https://ai.example.com/v1</code></pre>服务只监听本机 <code>127.0.0.1:3892</code>，并固定该上游网关。</li><li>在插件里选择 LiteLLM，填写相同网关地址，勾选<strong>使用环境变量 LITELLM_API_KEY</strong>，将服务启动时显示的<strong>本机连接码</strong>填到对应输入框，读取并选择模型。</li></ol>
-          <p>服务需在使用期间保持运行。修改环境变量后重启服务；服务重启会更换连接码，需要在插件内重新填写。若变量只在某个终端临时设置，就应在同一个终端启动服务。插件取不到变量时会明确报错，不自动使用其他 Key。</p>
+          <p>无需启动额外连接服务。选择 LiteLLM 后，填写网关地址，直接粘贴管理员提供的虚拟 Key，再读取并选择模型即可。</p>
           <h3>生成、核对、写入</h3>
           <p>选中条目，展开<strong>在线 AI 翻译</strong>，点击<strong>生成当前条目译文</strong>。仅发送当前原文与目标语言，不发送工作簿文件、路径、条目 Key、旧译文或草稿。结果显示格式问题，点击<strong>载入草稿</strong>后可编辑，再按原有流程写入并保存。切换条目、改变原文或编辑草稿会使旧建议失效；生成可取消，不自动重试。</p>
           <div class="guide-note"><strong>连接与费用</strong><p>请求发送到你配置的服务，费用和数据处理规则由该服务决定。直连模式需服务允许 WPS 窗格的跨域（CORS）访问；SDK 无法绕过跨域限制。模型列表接口不可用时，可以向管理员确认模型别名后手填。Key 不保存在工作簿、插件包或网站中。</p></div>

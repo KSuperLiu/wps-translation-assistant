@@ -1,5 +1,4 @@
 export const AI_SETTINGS_KEY = "WpsTranslationAssistant.aiSettings.v1";
-export const ENV_BRIDGE_URL = "http://127.0.0.1:3892/v1";
 export const AI_PROVIDERS = [
   { id: "litellm", name: "LiteLLM 网关", baseURL: "", kind: "compatible" },
   { id: "openrouter", name: "OpenRouter 统一网关", baseURL: "https://openrouter.ai/api/v1", kind: "compatible" },
@@ -15,8 +14,7 @@ export const providerFor = id => AI_PROVIDERS.find(p => p.id === id) || AI_PROVI
 export function publicAISettings(value = {}) {
   const provider = providerFor(value.provider);
   return { provider: provider.id, baseURL: typeof value.baseURL === "string" ? value.baseURL : provider.baseURL,
-    model: typeof value.model === "string" ? value.model.slice(0, 256) : "",
-    useEnv: provider.id === "litellm" && value.useEnv === true };
+    model: typeof value.model === "string" ? value.model.slice(0, 256) : "" };
 }
 export function loadAISettings(storage) {
   try { return publicAISettings(JSON.parse(storage.getItem(AI_SETTINGS_KEY)) || {}); }
@@ -37,11 +35,10 @@ export function normalizeAIBaseURL(value, provider = "compatible") {
 export function resolveAIConnection(value, requireModel = false) {
   const config = publicAISettings(value), provider = providerFor(config.provider);
   const baseURL = normalizeAIBaseURL(config.baseURL, config.provider);
-  const useEnv = config.useEnv, apiKey = String(useEnv ? value.bridgeToken || "" : value.apiKey || "").trim();
-  if (!apiKey) throw new Error(useEnv ? "请启动本机环境变量连接服务，并填写它显示的本机连接码。" : "请填写 AI Key / LiteLLM 虚拟 Key。");
-  if (/[\r\n]/.test(apiKey)) throw new Error("Key 或本机连接码不能包含换行。");
+  const apiKey = String(value.apiKey || "").trim();
+  if (!apiKey) throw new Error("请粘贴 AI Key / LiteLLM 虚拟 Key。");
+  if (/[\r\n]/.test(apiKey)) throw new Error("Key 不能包含换行。");
   if (requireModel && !config.model.trim()) throw new Error("请读取模型列表后选择模型，或输入服务提供的模型名称。");
   return { ...config, model: config.model.trim(), kind: provider.kind, apiKey,
-    baseURL: useEnv ? ENV_BRIDGE_URL : baseURL,
-    headers: useEnv ? { "X-Wps-Gateway": baseURL } : {} };
+    baseURL, headers: {} };
 }

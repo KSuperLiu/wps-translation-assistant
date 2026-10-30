@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { setupOnlineAI } from "../src/ai-ui.js";
 
 function fixture(options = {}) {
-  const elements = new Map(); let stored = null, calls = 0, loads = [];
+  const elements = new Map(); let stored = options.saved || null, calls = 0, loads = [];
   const element = () => ({ value: "", checked: false, hidden: false, disabled: false, textContent: "", children: [],
     append(child) { this.children.push(child); }, replaceChildren() { this.children = []; } });
   const $ = id => { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); };
@@ -16,10 +16,9 @@ function fixture(options = {}) {
     generate: options.generate || (async () => { calls++; return "Coins {0}"; }) });
   return { $, ui, calls: () => calls, loads, stored: () => stored, context: () => context, setContext: value => { context = value; } };
 }
-test("AI 初始化不请求，不写入，Key 和连接码不存储", () => {
+test("AI 初始化不请求，不写入，粘贴 Key 不存储", () => {
   const f = fixture(); assert.equal(f.calls(), 0); assert.deepEqual(f.loads, []); assert.equal(f.stored(), null);
   f.$("ai-key").value = "private-key"; f.$("ai-key").oninput();
-  f.$("ai-bridge-token").value = "private-pair"; f.$("ai-bridge-token").oninput();
   assert.doesNotMatch(f.stored(), /private|apiKey|bridgeToken/);
 });
 test("误粘贴到地址中的凭据和查询 Key 不会持久化", () => {
@@ -29,22 +28,22 @@ test("误粘贴到地址中的凭据和查询 Key 不会持久化", () => {
     assert.doesNotMatch(f.stored(), /private/); assert.equal(f.$("ai-base-url").value, value);
   }
 });
-test("环境变量可反复勾选和取消，立即恢复手填 Key", () => {
-  const f = fixture(); f.$("ai-key").value = "manual-key";
-  for (let i = 0; i < 3; i++) {
-    f.$("ai-use-env").checked = true; f.$("ai-use-env").onchange();
-    assert.equal(f.$("ai-key").disabled, true); assert.equal(f.$("ai-env-details").hidden, false);
-    assert.equal(JSON.parse(f.stored()).useEnv, true);
-    f.$("ai-use-env").checked = false; f.$("ai-use-env").onchange();
-    assert.equal(f.$("ai-key").disabled, false); assert.equal(f.$("ai-key-row").hidden, false);
-    assert.equal(f.$("ai-env-details").hidden, true); assert.equal(JSON.parse(f.stored()).useEnv, false);
-  }
-  assert.equal(f.$("ai-key").value, "manual-key"); assert.equal(f.calls(), 0);
+test("旧版保存的环境变量选项不会阻止直接粘贴 Key", async () => {
+  let received;
+  const f = fixture({ saved: JSON.stringify({ provider: "litellm", baseURL: "https://gateway.example/v1", model: "team-model", useEnv: true }),
+    listModels: async settings => { received = settings; return ["team-model"]; } });
+  assert.equal(f.$("ai-base-url").value, "https://gateway.example/v1");
+  assert.equal(f.$("ai-model").value, "team-model");
+  assert.equal(f.$("ai-key").disabled, false);
+  f.$("ai-key").value = "pasted-virtual-key"; f.$("ai-key").oninput();
+  await f.$("ai-models").onclick();
+  assert.equal(received.apiKey, "pasted-virtual-key");
+  assert.equal(received.useEnv, undefined); assert.equal(received.bridgeToken, undefined);
+  assert.doesNotMatch(f.stored(), /pasted-virtual-key|useEnv|bridgeToken/);
 });
-test("切换官方服务取消环境变量并清空旧 Key、模型", () => {
-  const f = fixture(); f.$("ai-use-env").checked = true; f.$("ai-key").value = "old-key";
+test("切换官方服务清空旧 Key 和模型", () => {
+  const f = fixture(); f.$("ai-key").value = "old-key";
   f.$("ai-model").value = "old-model"; f.$("ai-provider").value = "google"; f.$("ai-provider").onchange();
-  assert.equal(f.$("ai-use-env").checked, false); assert.equal(f.$("ai-env-setting").hidden, true);
   assert.equal(f.$("ai-key").value, ""); assert.equal(f.$("ai-model").value, "");
   assert.match(f.$("ai-base-url").value, /googleapis/);
 });

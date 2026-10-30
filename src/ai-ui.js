@@ -19,10 +19,9 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
     const option = document.createElement("option"); option.value = provider.id; option.textContent = provider.name; $("ai-provider").append(option);
   }
   $("ai-provider").value = settings.provider; $("ai-base-url").value = settings.baseURL;
-  $("ai-model").value = settings.model; $("ai-use-env").checked = settings.useEnv;
+  $("ai-model").value = settings.model;
   const config = () => ({ provider: $("ai-provider").value, baseURL: $("ai-base-url").value,
-    model: $("ai-model").value, useEnv: $("ai-use-env").checked,
-    apiKey: $("ai-key").value, bridgeToken: $("ai-bridge-token").value });
+    model: $("ai-model").value, apiKey: $("ai-key").value });
   function status(text) { $("online-ai-status").textContent = text; $("ai-connection-status").textContent = text; }
   function clearResult() { result = null; $("online-ai-result-box").hidden = true; $("online-ai-result").textContent = ""; $("online-ai-errors").textContent = ""; }
   function cancel(text = "已取消 AI 请求。") {
@@ -45,34 +44,24 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
     settings = publicAISettings(config());
     // 不保存误粘贴到 URL 的凭据或查询参数；输入框仍保留原值供用户修改。
     try { settings.baseURL = normalizeAIBaseURL(settings.baseURL, settings.provider); } catch { settings.baseURL = ""; }
-    try { getStorage().setItem(AI_SETTINGS_KEY, JSON.stringify(settings)); $("ai-settings-status").textContent = "配置已保存在本机；Key 和连接码仅本次窗格会话保留。"; }
+    try { getStorage().setItem(AI_SETTINGS_KEY, JSON.stringify(settings)); $("ai-settings-status").textContent = "配置已保存在本机；Key 仅本次窗格会话保留。"; }
     catch { $("ai-settings-status").textContent = "本机存储不可用，配置仅在本次窗格会话生效。"; }
-  }
-  function credentialMode() {
-    const litellm = $("ai-provider").value === "litellm";
-    $("ai-env-setting").hidden = !litellm;
-    if (!litellm) $("ai-use-env").checked = false;
-    const useEnv = litellm && $("ai-use-env").checked;
-    $("ai-key").disabled = useEnv; $("ai-key-row").hidden = useEnv;
-    $("ai-env-details").hidden = !useEnv;
-    $("ai-bridge-token").disabled = !useEnv;
   }
   function changed() {
     if (request) cancel("配置已变化，已取消 AI 请求。"); else status("");
-    clearResult(); credentialMode(); persist(); refresh();
+    clearResult(); persist(); refresh();
   }
   $("ai-provider").onchange = () => {
     $("ai-base-url").value = providerFor($("ai-provider").value).baseURL;
     $("ai-key").value = ""; $("ai-model").value = "";
     $("ai-model-options").replaceChildren(); changed();
   };
-  for (const id of ["ai-base-url", "ai-key", "ai-model", "ai-bridge-token"]) $(id).oninput = () => {
+  for (const id of ["ai-base-url", "ai-key", "ai-model"]) $(id).oninput = () => {
     // 目的地址改变时清掉凭据，避免把上一个服务的 Key 发送给新地址。
     if (id === "ai-base-url") { $("ai-key").value = ""; $("ai-model-options").replaceChildren(); }
     changed();
   };
-  $("ai-use-env").onchange = changed;
-  $("ai-clear-key").onclick = () => { $("ai-key").value = ""; $("ai-bridge-token").value = ""; changed(); status("已清除本次会话的 Key 和连接码。"); };
+  $("ai-clear-key").onclick = () => { $("ai-key").value = ""; changed(); status("已清除本次会话的 Key。"); };
   $("online-ai-cancel").onclick = () => cancel();
   $("ai-settings-cancel").onclick = () => cancel();
   async function run(type) {
@@ -111,6 +100,6 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
     if (context.draft && context.draft !== result.text && !confirm("用生成的 AI 建议替换当前草稿？表格译文将在点击写入后才修改。")) return;
     const text = result.text; clearResult(); loadDraft(text); status("AI 建议已载入草稿，请核对后写入。"); refresh();
   };
-  credentialMode(); refresh();
+  refresh();
   return { refresh, dispose: () => { counter++; request?.controller.abort(); } };
 }

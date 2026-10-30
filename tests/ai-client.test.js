@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadAISettings, publicAISettings, resolveAIConnection, normalizeAIBaseURL, ENV_BRIDGE_URL } from "../src/ai-config.js";
+import { loadAISettings, publicAISettings, resolveAIConnection, normalizeAIBaseURL } from "../src/ai-config.js";
 import { generateAITranslation, listAIModels, safeAIError, boundedFetch, translationPrompt } from "../src/ai-client.js";
 
 const config = { provider: "litellm", baseURL: "https://gateway.example/ai", model: "team-localizer", apiKey: "fake-virtual-key" };
@@ -8,12 +8,12 @@ const unit = { source: "得到 {0}\\n<color=red>金币</color>", language: "EN",
 const json = (value, status = 200) => Response.json(value, { status });
 const completion = (content = "Get {0}\\n<color=red>coins</color>", finish = "stop") => json({ id: "mock", created: 1, model: "team-localizer", object: "chat.completion", choices: [{ index: 0, message: { role: "assistant", content }, finish_reason: finish }], usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 } });
 
-test("AI 设置只持久化非凭据，默认不使用环境变量", () => {
-  assert.equal(loadAISettings({ getItem: () => null }).useEnv, false);
+test("AI 设置只持久化服务、地址和模型，忽略旧凭据模式", () => {
+  assert.deepEqual(loadAISettings({ getItem: () => null }), { provider: "litellm", baseURL: "", model: "" });
   for (const raw of ["null", "[", '{"provider":"bad","useEnv":true}']) assert.equal(loadAISettings({ getItem: () => raw }).provider, "litellm");
   const value = publicAISettings({ ...config, apiKey: "secret", bridgeToken: "pair-secret", useEnv: true });
-  assert.equal(value.useEnv, true); assert.doesNotMatch(JSON.stringify(value), /secret|apiKey|bridgeToken/);
-  assert.equal(publicAISettings({ provider: "openai", useEnv: true }).useEnv, false);
+  assert.equal(value.useEnv, undefined); assert.doesNotMatch(JSON.stringify(value), /secret|apiKey|bridgeToken|useEnv/);
+  assert.equal(publicAISettings({ provider: "openai", useEnv: true }).useEnv, undefined);
 });
 test("LiteLLM 基础地址规范化保留反向代理路径和模型别名", () => {
   assert.equal(normalizeAIBaseURL(" https://gateway.example/team/ ", "litellm"), "https://gateway.example/team/v1");
@@ -22,13 +22,12 @@ test("LiteLLM 基础地址规范化保留反向代理路径和模型别名", () 
   assert.equal(resolveAIConnection(config, true).model, "team-localizer");
   for (const url of ["javascript:alert(1)", "http://remote.example", "https://user:key@gw.example", "https://gw.example?key=secret", "https://gw.example/#secret", "https://gw.example/v1/chat/completions"]) assert.throws(() => normalizeAIBaseURL(url));
 });
-test("勾选环境变量不回退到手填 Key，只向本机服务提交连接码", () => {
-  assert.throws(() => resolveAIConnection({ ...config, useEnv: true }), /本机连接码/);
-  const result = resolveAIConnection({ ...config, useEnv: true, bridgeToken: "fake-pair-code" });
-  assert.equal(result.baseURL, ENV_BRIDGE_URL); assert.equal(result.apiKey, "fake-pair-code");
-  assert.equal(result.headers["X-Wps-Gateway"], "https://gateway.example/ai/v1");
-  assert.doesNotMatch(JSON.stringify(result), /fake-virtual-key/);
-  assert.equal(resolveAIConnection({ ...config, useEnv: false, bridgeToken: "fake-pair-code" }).apiKey, "fake-virtual-key");
+test("旧版环境变量选项被忽略，直接使用粘贴的 Key 与配置网关", () => {
+  const result = resolveAIConnection({ ...config, useEnv: true, bridgeToken: "obsolete-pair-code" });
+  assert.equal(result.baseURL, "https://gateway.example/ai/v1");
+  assert.equal(result.apiKey, "fake-virtual-key"); assert.deepEqual(result.headers, {});
+  assert.doesNotMatch(JSON.stringify(result), /obsolete-pair-code|bridgeToken|useEnv/);
+  assert.throws(() => resolveAIConnection({ ...config, apiKey: "", useEnv: true, bridgeToken: "obsolete" }), /请粘贴/);
 });
 test("LiteLLM 模型列表使用虚拟 Key 鉴权并原样返回网关别名", async () => {
   const models = await listAIModels(config, { fetcher: async (url, options) => {
@@ -85,7 +84,6 @@ test("错误不回显上游消息或 Key，不自动重试计费请求", async (
   await assert.rejects(generateAITranslation(config, unit, { fetcher: async () => { calls++; return json({ error: { message: "fake-virtual-key" } }, 429); } }), /受限或额度/);
   assert.equal(calls, 1);
   assert.doesNotMatch(safeAIError({ message: "sk-secret-provider-response" }), /secret/);
-  assert.match(safeAIError({ status: 503 }, null, true), /LITELLM_API_KEY/);
   assert.doesNotMatch(safeAIError({ status: 503 }), /LITELLM_API_KEY/);
 });
 test("截断和空白 AI 结果不会作为完成译文返回", async () => {

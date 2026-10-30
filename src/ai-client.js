@@ -22,16 +22,15 @@ export async function boundedFetch(fetcher, url, options = {}) {
   for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
   return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
 }
-export function safeAIError(error, signal, useEnv = false) {
+export function safeAIError(error, signal) {
   if (signal?.aborted) return signal.reason?.name === "TimeoutError" ? "AI 请求超时，请稍后手动重试。" : "已取消 AI 请求。";
   const code = error?.statusCode || error?.status;
-  if (code === 401 || code === 403) return "认证失败：请核对 Key、模型权限，或本机连接码。";
-  if (code === 409 && useEnv) return "本机连接服务的网关地址与设置不一致，请核对后重启连接服务。";
+  if (code === 401 || code === 403) return "认证失败：请核对 Key 和模型权限。";
   if (code === 404) return "接口或模型不存在，请核对服务基础地址和模型名称。";
   if (code === 429) return "请求受限或额度不足，请检查服务配额后手动重试。";
-  if (code === 503) return useEnv ? "本机连接服务未读取到 LITELLM_API_KEY，请设置后重启连接服务。" : "AI 服务暂时不可用，请稍后手动重试。";
+  if (code === 503) return "AI 服务暂时不可用，请稍后手动重试。";
   if (code) return "AI 服务请求失败（HTTP " + Number(code) + "），请检查服务配置。";
-  return "无法完成 AI 请求。请检查网络、服务地址及跨域（CORS）配置；环境变量模式还需启动本机连接服务。";
+  return "无法完成 AI 请求。请检查网络、服务地址及跨域（CORS）配置。";
 }
 function requestSignal(signal) {
   // WPS 内嵌浏览器可能尚未提供 AbortSignal.any / timeout。
@@ -66,7 +65,7 @@ export async function listAIModels(settings, { fetcher = globalThis.fetch, signa
       if (!cursor) break;
     }
     return [...new Set(models)].sort();
-  } catch (error) { throw new Error(safeAIError(error, abortSignal, config.useEnv)); }
+  } catch (error) { throw new Error(safeAIError(error, abortSignal)); }
   finally { request.dispose(); }
 }
 export function translationPrompt(unit) {
@@ -88,6 +87,6 @@ export async function generateAITranslation(settings, unit, { fetcher = globalTh
   } catch (error) {
     if (error?.message === "INCOMPLETE_TRANSLATION") throw new Error("AI 未完整生成译文，请检查模型或缩短原文后重试。");
     if (error?.message === "EMPTY_TRANSLATION") throw new Error("AI 未返回译文，请检查模型是否支持文本生成。");
-    throw new Error(safeAIError(error, abortSignal, config.useEnv));
+    throw new Error(safeAIError(error, abortSignal));
   } finally { request.dispose(); }
 }
