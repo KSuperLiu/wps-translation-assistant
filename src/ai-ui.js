@@ -14,7 +14,7 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
   const $ = id => document.getElementById(id);
   let settings;
   try { settings = loadAISettings(getStorage()); } catch { settings = storedAISettings(); }
-  let result = null, request = null, counter = 0;
+  let result = null, request = null, counter = 0, availableModels = [];
   for (const provider of AI_PROVIDERS) {
     const option = document.createElement("option"); option.value = provider.id; option.textContent = provider.name; $("ai-provider").append(option);
   }
@@ -23,6 +23,20 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
   $("ai-key").value = settings.apiKey;
   const config = () => ({ provider: $("ai-provider").value, baseURL: $("ai-base-url").value,
     model: $("ai-model").value, apiKey: $("ai-key").value });
+  function renderModelPicker() {
+    const select = $("ai-model-select"), currentModel = $("ai-model").value;
+    select.replaceChildren();
+    const add = (value, label) => {
+      const option = document.createElement("option"); option.value = value; option.textContent = label; select.append(option);
+    };
+    add("", availableModels.length ? "请选择模型" : "请先读取模型列表");
+    for (const model of availableModels) add("model:" + model, model);
+    if (currentModel && !availableModels.includes(currentModel)) add("model:" + currentModel, currentModel);
+    add("manual", "手动输入模型名称…");
+    select.value = currentModel ? "model:" + currentModel : "";
+    $("ai-model-manual").hidden = true;
+  }
+  function resetModelPicker() { availableModels = []; renderModelPicker(); }
   function status(text) { $("online-ai-status").textContent = text; $("ai-connection-status").textContent = text; }
   function clearResult() { result = null; $("online-ai-result-box").hidden = true; $("online-ai-result").textContent = ""; $("online-ai-errors").textContent = ""; }
   function cancel(text = "已取消 AI 请求。") {
@@ -55,14 +69,21 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
   $("ai-provider").onchange = () => {
     $("ai-base-url").value = providerFor($("ai-provider").value).baseURL;
     $("ai-key").value = ""; $("ai-model").value = "";
-    $("ai-model-options").replaceChildren(); changed();
+    resetModelPicker(); changed();
   };
   for (const id of ["ai-base-url", "ai-key", "ai-model"]) $(id).oninput = () => {
     // 目的地址改变时清掉凭据，避免把上一个服务的 Key 发送给新地址。
-    if (id === "ai-base-url") { $("ai-key").value = ""; $("ai-model-options").replaceChildren(); }
+    if (id === "ai-base-url") { $("ai-key").value = ""; resetModelPicker(); }
+    if (id === "ai-key") resetModelPicker();
     changed();
   };
-  $("ai-clear-key").onclick = () => { $("ai-key").value = ""; changed(); status("已清除保存的 Key。"); };
+  $("ai-model-select").onchange = () => {
+    const value = $("ai-model-select").value;
+    $("ai-model-manual").hidden = value !== "manual";
+    if (value !== "manual") $("ai-model").value = value.startsWith("model:") ? value.slice(6) : "";
+    changed();
+  };
+  $("ai-clear-key").onclick = () => { $("ai-key").value = ""; resetModelPicker(); changed(); status("已清除保存的 Key。"); };
   $("online-ai-cancel").onclick = () => cancel();
   $("ai-settings-cancel").onclick = () => cancel();
   async function run(type) {
@@ -77,10 +98,10 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
       if (type === "models") {
         const models = await listModels(config(), { signal: controller.signal });
         if (id !== counter) return;
-        $("ai-model-options").replaceChildren();
-        for (const model of models) { const option = document.createElement("option"); option.value = model; $("ai-model-options").append(option); }
-        status(models.length ? "已读取 " + models.length + " 个模型，请选择或输入模型名称。" : "服务未返回可用模型，可向管理员确认后手填模型名称。");
+        availableModels = models;
+        status(models.length ? "已读取 " + models.length + " 个模型，请从下拉框选择。" : "服务未返回可用模型，可选择“手动输入模型名称…”填写。");
         if (models.length === 1 && !$("ai-model").value.trim()) { $("ai-model").value = models[0]; persist(); }
+        renderModelPicker();
       } else {
         // 只传原文和目标语言，不发送整个工作簿、路径、Key、旧译或草稿。
         const text = await generate(config(), { source: context.unit.source, language: context.unit.language }, { signal: controller.signal });
@@ -101,6 +122,6 @@ export function setupOnlineAI({ document = globalThis.document, getStorage, getC
     if (context.draft && context.draft !== result.text && !confirm("用生成的 AI 建议替换当前草稿？表格译文将在点击写入后才修改。")) return;
     const text = result.text; clearResult(); loadDraft(text); status("AI 建议已载入草稿，请核对后写入。"); refresh();
   };
-  refresh();
+  renderModelPicker(); refresh();
   return { refresh, dispose: () => { counter++; request?.controller.abort(); } };
 }

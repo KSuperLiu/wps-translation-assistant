@@ -118,3 +118,47 @@ test("接表阶段可读取模型并显示连接状态，不需要当前条目",
   assert.equal(f.$("ai-model").value, "team-translator"); assert.match(f.$("ai-connection-status").textContent, /读取 1 个/);
   assert.equal(f.$("online-ai-generate").disabled, true); assert.equal(f.calls(), 1);
 });
+test("读取 96 个模型后标准下拉完整列出，选择后保存精确模型别名", async () => {
+  const models = Array.from({ length: 96 }, (_, index) => "team/model-" + index);
+  const f = fixture({ listModels: async () => models });
+  await f.$("ai-models").onclick();
+  assert.equal(f.$("ai-model-select").children.length, 98);
+  assert.deepEqual(f.$("ai-model-select").children.slice(1, -1).map(option => option.textContent), models);
+  f.$("ai-model-select").value = "model:team/model-95"; f.$("ai-model-select").onchange();
+  assert.equal(f.$("ai-model").value, "team/model-95");
+  assert.equal(JSON.parse(f.stored()).model, "team/model-95");
+  assert.equal(f.$("ai-model-manual").hidden, true);
+  assert.equal(fixture({ saved: f.stored() }).$("ai-model-select").value, "model:team/model-95");
+});
+test("手动输入入口可用，输入后保存并在切回列表模型时隐藏", async () => {
+  const f = fixture({ listModels: async () => ["model-a", "model-b"] });
+  f.$("ai-model-select").value = "manual"; f.$("ai-model-select").onchange();
+  assert.equal(f.$("ai-model-manual").hidden, false);
+  f.$("ai-model").value = "custom-model"; f.$("ai-model").oninput();
+  assert.equal(JSON.parse(f.stored()).model, "custom-model");
+  await f.$("ai-models").onclick();
+  assert.equal(f.$("ai-model-select").value, "model:custom-model");
+  assert.ok(f.$("ai-model-select").children.some(option => option.textContent === "custom-model"));
+  f.$("ai-model-select").value = "model:model-b"; f.$("ai-model-select").onchange();
+  assert.equal(f.$("ai-model-manual").hidden, true); assert.equal(JSON.parse(f.stored()).model, "model-b");
+});
+test("模型别名为 manual 时仍可正常选择", async () => {
+  const f = fixture({ listModels: async () => ["manual", "other"] });
+  await f.$("ai-models").onclick();
+  f.$("ai-model-select").value = "model:manual"; f.$("ai-model-select").onchange();
+  assert.equal(f.$("ai-model").value, "manual"); assert.equal(f.$("ai-model-manual").hidden, true);
+});
+test("切换服务移除上一个服务的模型列表", async () => {
+  const f = fixture({ listModels: async () => ["old-model-a", "old-model-b"] });
+  await f.$("ai-models").onclick();
+  f.$("ai-provider").value = "openai"; f.$("ai-provider").onchange();
+  assert.deepEqual(f.$("ai-model-select").children.map(option => option.value), ["", "manual"]);
+});
+test("读取模型期间修改 Key，迟到的列表不会进入新配置", async () => {
+  let finish;
+  const f = fixture({ listModels: async () => new Promise(resolve => { finish = resolve; }) });
+  const task = f.$("ai-models").onclick();
+  f.$("ai-key").value = "new-key"; f.$("ai-key").oninput();
+  finish(["old-key-model"]); await task;
+  assert.equal(f.$("ai-model-select").children.some(option => option.textContent === "old-key-model"), false);
+});

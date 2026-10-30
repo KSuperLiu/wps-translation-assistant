@@ -50,7 +50,8 @@
       <label class="ai-setting" for="ai-provider">服务商 / 网关<select id="ai-provider"></select></label>
       <label class="ai-setting" for="ai-base-url">API 基础地址<input id="ai-base-url" type="url" placeholder="例如 https://ai.example.com/v1" autocomplete="off" spellcheck="false"></label>
       <label id="ai-key-row" class="ai-setting" for="ai-key">AI Key / LiteLLM 虚拟 Key<input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="直接粘贴 Key，自动保存在本机"></label>
-      <label class="ai-setting" for="ai-model">模型名称<input id="ai-model" list="ai-model-options" placeholder="读取后选择，或手填网关模型别名" autocomplete="off" spellcheck="false"><datalist id="ai-model-options"></datalist></label>
+      <label class="ai-setting" for="ai-model-select">模型名称<select id="ai-model-select"></select></label>
+      <label id="ai-model-manual" class="ai-setting" for="ai-model" hidden>手动模型名称<input id="ai-model" placeholder="输入服务提供的模型名称或网关别名" autocomplete="off" spellcheck="false"></label>
       <button id="ai-models" class="text-button">读取模型列表 / 测试连接</button><button id="ai-settings-cancel" class="text-button" hidden>取消请求</button><p id="ai-connection-status" class="muted" role="status" aria-live="polite"></p><button id="ai-clear-key" class="text-button full">清除保存的 Key</button>
       <p id="ai-settings-status" class="muted" role="status">复制服务提供的 Key，直接粘贴到上方输入框。地址、模型和 Key 保存在本机，下次打开自动恢复。</p><p class="muted">官方 Key 仅用于对应服务；LiteLLM 使用网关虚拟 Key 与网关模型别名。直连需服务允许 WPS 网页跨域访问，读取列表失败时可手填模型。切换服务或修改地址会清空手填 Key。</p>
     </details>

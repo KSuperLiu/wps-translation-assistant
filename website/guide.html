@@ -43,7 +43,7 @@
         </section>
         <section id="online-ai" class="guide-section">
           <h2>在线 AI 配置</h2>
-          <p>打开<strong>更多 → AI 设置</strong>，选择服务商或网关，直接复制并粘贴 Key，点击<strong>读取模型列表 / 测试连接</strong>，再选择或输入模型名称。地址、模型和 Key 都保存在当前用户的插件本机存储中，下次打开窗格自动恢复。Key 输入框以遮蔽方式显示；点击“清除保存的 Key”可移除已保存的 Key。切换服务或修改地址时也会清除 Key，需为新服务重新粘贴。</p>
+          <p>打开<strong>更多 → AI 设置</strong>，选择服务商或网关，直接复制并粘贴 Key，点击<strong>读取模型列表 / 测试连接</strong>，再从模型下拉框选择；需要手填时，选择“手动输入模型名称…”，在出现的输入框中填写。地址、模型和 Key 都保存在当前用户的插件本机存储中，下次打开窗格自动恢复。Key 输入框以遮蔽方式显示；点击“清除保存的 Key”可移除已保存的 Key。切换服务或修改地址时也会清除 Key，需为新服务重新粘贴。</p>
           <h3>统一网关或厂商官方 Key</h3>
           <p><strong>LiteLLM：</strong>支持 HTTP 和 HTTPS，包括内网 IP 或域名。填写管理员提供的 API 基础地址（例如 <code>https://ai.example.com/v1</code>）和虚拟 Key，使用网关开放的模型别名。网关管理上游厂商凭据，一个虚拟 Key 能使用哪些模型由管理员决定。</p>
           <p><strong>OpenRouter：</strong>选择后会预填地址，用对应 Key 读取模型。<strong>OpenAI、Anthropic、Gemini、DeepSeek、通义千问：</strong>使用各自服务的官方 Key；通义千问需选择 Key 对应的地域。其他服务可选择“其他 OpenAI 兼容服务”，填入完整基础地址。切换服务或修改地址会清空手填 Key，防止误发给另一个服务。</p>
