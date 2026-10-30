@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="WPS 翻译助手使用文档：接表确认、表格编辑、采用表内 AI 建议、格式检查和保存交付。">
+  <title>使用文档 · WPS 翻译助手</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./guide.css">
+</head>
+<body class="guide">
+  <div class="guide-shell">
+    <div class="guide-top"><a class="brand" href="./"><img src="./icon.svg" alt="" width="28" height="28">WPS 翻译助手</a><a href="./">返回安装与更新</a></div>
+    <header class="guide-header"><p class="eyebrow">使用文档 · 适用于 v{{APP_VERSION}}</p><h1>在表格里完成翻译</h1><p>继续使用熟悉的 WPS 翻译表，让助手帮你找条目、看参考、查格式。</p></header>
+    <div class="guide-layout">
+      <nav class="guide-toc" aria-label="文档目录"><span>本文目录</span><a href="#start">快速开始</a><a href="#workflow">翻译工作流程</a><a href="#features">当前功能</a><a href="#checks">检查规则与设置</a><a href="#more">更多操作</a><a href="#questions">常见问题</a></nav>
+      <main class="guide-content">
+        <section id="start" class="guide-section">
+          <h2>快速开始</h2><p>适用于支持 JavaScript 加载项的 <strong>Windows WPS 表格</strong>。翻译表在本机处理，插件使用表内已有的 AI 建议，不会自动调用在线 AI 翻译。</p>
+          <ol class="quick-steps"><li>在<a href="./">安装网页</a>点击安装或更新，完成后重新打开 WPS 表格。</li><li>打开任务表，点击顶部 <strong>翻译助手 → 打开助手</strong>。</li><li>确认任务语言，点击<strong>开始翻译 / 继续翻译</strong>，在目标语言的最终译文列填写。</li><li>完成后运行<strong>交付检查</strong>，用 WPS <strong>保存或另存为</strong>交付文件。</li></ol>
+          <div class="guide-note"><strong>两次保存要分清</strong><p>在侧栏输入只是草稿；点击“写入并下一条”才进入工作簿。助手写入后，还需要用 WPS 保存到文件。</p></div>
+        </section>
+        <section id="workflow" class="guide-section">
+          <h2>翻译人员怎么工作</h2>
+          <div class="workflow-step"><span class="step-number">1</span><div><h3>接表：确认语言与填写范围</h3><p>先保留需求方提供的原文件，使用任务副本翻译。“接表确认”会显示目标语言、翻译工作表数量，以及已填写、空译文等情况。多语言表需要选择本次任务语言。</p><p>看清“只填写……最终译文列”的提示。原文、旧译文、AI 和 Key 列各有用途，保持原结构；如果出现识别提示，先核实列关系再开始。</p></div></div>
+          <div class="workflow-step"><span class="step-number">2</span><div><h3>找条目：先补空译文，再处理问题</h3><p>点击“开始翻译 / 继续翻译”或“下一条待处理”。助手优先寻找当前范围内未填写译文的条目，没有空译文后，再寻找已有译文但格式或 Key 检查有问题的条目。</p><p>展开“任务列表与查找”可按工作表和任务类型筛选，也可搜索 Key、原文或译文。下一条跳转遵循这些筛选条件；需要回到全任务时，选择“全部工作表”并清空搜索。</p></div></div>
+          <div class="workflow-step"><span class="step-number">3</span><div><h3>翻译：直接改表，或先写侧栏草稿</h3><p><strong>直接在表格填写：</strong>选中目标语言的最终译文单元格进行编辑，提交单元格后，助手会更新检查结果。侧栏随表格选区切换，点击“定位译文”可回到对应位置。</p><p><strong>在侧栏编辑：</strong>在“最终译文草稿”里输入，核对后点击“写入并下一条”。“暂跳过”只切换条目，不会把当前条目记为完成。</p><p>当前原文与旧原文有变化时，会展示增删差异；“旧译文参考”可展开查看，也可以“以旧译文为底稿”。</p></div></div>
+          <div class="workflow-step"><span class="step-number">4</span><div><h3>用参考：核对表内 AI 建议后采用</h3><p>有表内建议时，侧栏显示“表内 AI 建议”。点击<strong>采用 AI 并写入</strong>可直接填写当前译文；想先改内容，就点击<strong>先载入草稿</strong>，编辑后再写入。</p><p>覆盖已有译文或不同的未写入草稿前会要求确认。建议有格式问题时不能直接采用，需要先处理；格式通过后仍要核对含义、术语和上下文。</p></div></div>
+          <div class="workflow-step"><span class="step-number">5</span><div><h3>交付前：检查整个工作簿</h3><p>点击顶部或侧栏的<strong>交付检查</strong>，重新检查当前目标语言在整个工作簿中的格式和 Key 问题，并查看识别提示、尚未写入的侧栏草稿。点击“去处理”可定位相关条目。</p><p>单条写入只核对、刷新当前工作表，避免每次遍历整个工作簿；交付检查仍会检查全工作簿。检查通过表示没有发现对应技术问题，翻译含义与术语仍需人工复核。</p></div></div>
+          <div class="workflow-step"><span class="step-number">6</span><div><h3>保存：将最终文件交回需求方</h3><p>确保需要的草稿都已写入，再用 WPS<strong>文件 → 另存为</strong>保存新的 <code>.xlsx</code> 交付文件。保留工作表、表头、完整 Key 和原有格式。</p><p>“保存交付”区域可查看 WPS 报告的文件位置与保存状态。确认保存到正确文件后，再交回需求方。</p></div></div>
+        </section>
+        <section id="features" class="guide-section">
+          <h2>当前功能一览</h2>
+          <div class="guide-table-wrap"><table><thead><tr><th scope="col">功能</th><th scope="col">怎么用</th></tr></thead><tbody>
+            <tr><th scope="row">识别翻译表与语言</th><td>自动识别常见翻译表和多字段配置表；特殊表头可在“更多 → 识别设置”指定列。</td></tr>
+            <tr><th scope="row">原文变化与旧译参考</th><td>查看新旧原文差异，展开旧译文，按需载入草稿。</td></tr>
+            <tr><th scope="row">表内 AI 建议</th><td>直接采用并写入，或先载入草稿修改。</td></tr>
+            <tr><th scope="row">问题检查与定位</th><td>检查占位符、标签、换行标记及同一工作表内的重复完整 Key。</td></tr>
+            <tr><th scope="row">进度与查找</th><td>查看已填写、空译文和问题数量；筛选、搜索后按当前范围继续处理。</td></tr>
+            <tr><th scope="row">复制完整 Key</th><td>展开“条目信息”，点击完整 Key 右侧的“复制”。</td></tr>
+            <tr><th scope="row">写入与撤销</th><td>写入前核对条目，避免改表后用旧位置覆盖；可撤销本会话最近一次助手写入。</td></tr>
+          </tbody></table></div>
+        </section>
+        <section id="checks" class="guide-section">
+          <h2>检查规则与设置</h2>
+          <h3>占位符与富文本标签</h3><p>例如 <code>{0}</code>、<code>{name}</code>、<code>%s</code>、<code>%2$s</code> 以及 TMP 富文本标签，需要保留对应片段和出现次数；标签还会检查闭合顺序。看到问题时，对照当前原文核实后修改。</p>
+          <h3>换行标记 <code>\n</code></h3><p>在<strong>更多 → 检查设置 → 检查 \n 换行标记</strong>中切换，默认开启。这里的 <code>\n</code> 是反斜杠加字母 n，不是单元格里的实际换行。</p><ul><li><strong>开启：</strong>检查译文比原文多了或少了多少个 <code>\n</code>。</li><li><strong>关闭：</strong>忽略 <code>\n</code> 的数量差异；其他占位符、标签和 Key 检查继续生效。</li></ul><p>开关会记住本机选择。切换后先显示状态，再分批更新检查结果；存储不可用时会提示仅在本次窗格会话生效。</p>
+          <h3>完整 Key 只在同一张工作表内判重</h3><p>不同工作表可以使用相同 Key。<code>-123_groupName</code> 和 <code>-123_groupDesc</code> 是两个不同的完整 Key；同一张表里出现多个相同完整 Key 时，才会提示重复，并阻止助手写入相关条目。</p>
+          <h3>空译文与格式问题分别统计</h3><p>允许原文或译文为空，空译文本身不会阻止交付检查通过，但仍会显示在翻译进度中。是否需要全部填写，应以本次翻译任务要求为准。“已填写”表示单元格有内容，不代表已人工审校。</p>
+        </section>
+        <section id="more" class="guide-section">
+          <h2>更多操作</h2>
+          <details><summary>批量填充 AI 建议</summary><p>在“更多 → 批量填充 AI 建议”中使用。只填充当前任务列表筛选范围内的空白译文，并要求确认；有未写入草稿时需先处理草稿。批量填充后仍需逐条复核内容。</p></details>
+          <details><summary>撤销最近一次助手写入</summary><p>在“更多”中点击“撤销最近一次助手写入”。撤销仅保留本次窗格会话中、当前工作簿最近一次成功写入；若写入后又人工修改了单元格，助手不会覆盖后来的修改。关闭窗格或重启 WPS 后不保证还能撤销。</p></details>
+          <details><summary>特殊表头怎么设置</summary><p>展开“更多 → 识别设置 · 特殊表头”，选择工作表，指定表头行、首条数据行、目标语言、字段名，以及 Key、原文、最终译文列。按需要指定旧原文、旧译文和 AI 列，再保存映射。</p><p>同一结构可添加多个字段或语种，配置保存在本机供同结构任务复用。如果不确定列的用途，先向需求方确认；点击“清除本结构的配置，恢复自动识别”可撤回该配置。</p></details>
+          <details><summary>检查更新与安装更新</summary><p>插件“更多”中显示当前版本，并提供“检查更新”。有新版时打开安装网站更新；更新前保存工作，按网站提示正常退出 WPS，完成后重新打开。</p></details>
+        </section>
+        <section id="questions" class="guide-section">
+          <h2>常见问题</h2>
+          <h3>草稿切换条目后还在吗？</h3><p>本次窗格会话内会保留。关闭或重载窗格、重启 WPS 后会丢失，所以结束工作前请写入需要保留的草稿，再用 WPS 保存。</p>
+          <h3>为什么不能写入？</h3><p>先看草稿下方和面板顶部的问题提示。常见原因有格式检查未通过、当前表完整 Key 重复、内容或位置已变化，以及目标单元格是公式、合并格或受保护的单元格。改表后需要重新核对，不能继续用旧位置写入。</p>
+          <h3>下一条怎么一直在某张表或某类条目里？</h3><p>查看“任务列表与查找”中的工作表、任务类型和搜索条件。跳转只在当前筛选范围内进行，先空译文，后校验问题。选择“全部工作表”、合适的任务类型，并清空搜索即可扩大范围。</p>
+          <h3>为什么有时识别很多工作表？</h3><p>首次打开、手动重新识别和交付检查需要确认全工作簿。v1.3.12 起，单条草稿写入和单条 AI 采用只核对、刷新当前工作表。大量增删行列或调整结构后，可以手动重新识别。</p>
+          <h3>安装后没有“翻译助手”选项卡怎么办？</h3><p>先保存工作，正常关闭全部 WPS 表格窗口，再重新打开。仍未出现时回到<a href="./">安装网页</a>重新检测，确认 WPS 版本支持 JavaScript 加载项。</p>
+          <h3>能直接在 Microsoft Excel 中用吗？</h3><p>当前插件支持 Windows WPS 表格。任务文件可以使用 <code>.xlsx</code> 格式，但插件本身需要在 WPS 中打开。</p>
+        </section>
+        <div class="guide-bottom"><p>开始使用翻译助手</p><a href="./">前往安装与更新</a><a href="#start">回到快速开始</a></div>
+      </main>
+    </div>
+    <footer class="guide-footer"><span>WPS 翻译助手 · 使用文档</span><a href="./">返回安装与更新</a></footer>
+  </div>
+</body>
+</html>

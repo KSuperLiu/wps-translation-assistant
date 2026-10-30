@@ -45,9 +45,11 @@ try {
     }
     fs.writeFileSync(path.join(output, script), source);
   }
-  let html = fs.readFileSync(path.join(output, 'index.html'), 'utf8');
-  for (const file of ['app.js', 'style.css']) html = html.replace('./' + file, './' + file + '?v=' + hash(fs.readFileSync(path.join(output, file))).slice(0, 12));
-  fs.writeFileSync(path.join(output, 'index.html'), html);
+  for (const page of ['index.html', 'guide.html']) {
+    let html = fs.readFileSync(path.join(output, page), 'utf8').replaceAll('{{APP_VERSION}}', pkg.version);
+    for (const file of ['app.js', 'style.css', 'guide.css']) html = html.replace('./' + file, './' + file + '?v=' + hash(fs.readFileSync(path.join(output, file))).slice(0, 12));
+    fs.writeFileSync(path.join(output, page), html);
+  }
   fs.copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(output, 'THIRD_PARTY_NOTICES.md'));
   fs.writeFileSync(path.join(output, 'latest.json'), JSON.stringify(manifest, null, 2) + '\n');
   fs.writeFileSync(path.join(output, '.nojekyll'), '');

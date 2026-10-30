@@ -23,7 +23,7 @@ Windows WPS 表格 JavaScript 加载项。翻译人员继续直接在现有工�
 
 本次 161 项测试通过，覆盖任务分类、草稿校验、AI 直接写入、冲突保护和撤销等。新版在本机 WPS 原生窗格中的完整安装与编辑验收尚未完成；不能将网页部署或模拟测试视为实机升级成功。
 
-**[打开安装与更新网站](https://ksuperliu.github.io/wps-translation-assistant/)** · [问题反馈](https://github.com/KSuperLiu/wps-translation-assistant/issues)
+**[打开安装与更新网站](https://ksuperliu.github.io/wps-translation-assistant/)** · [翻译人员使用文档](https://ksuperliu.github.io/wps-translation-assistant/guide.html) · [问题反馈](https://github.com/KSuperLiu/wps-translation-assistant/issues)
 
 ## 网页安装、更新与卸载
 
