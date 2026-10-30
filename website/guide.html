@@ -12,10 +12,10 @@
     <div class="guide-top"><a class="brand" href="./"><img src="./icon.svg" alt="" width="28" height="28">WPS 翻译助手</a><a href="./">返回安装与更新</a></div>
     <header class="guide-header"><p class="eyebrow">使用文档 · 适用于 v{{APP_VERSION}}</p><h1>在表格里完成翻译</h1><p>继续使用熟悉的 WPS 翻译表，让助手帮你找条目、看参考、查格式。</p></header>
     <div class="guide-layout">
-      <nav class="guide-toc" aria-label="文档目录"><span>本文目录</span><a href="#start">快速开始</a><a href="#workflow">翻译工作流程</a><a href="#features">当前功能</a><a href="#checks">检查规则与设置</a><a href="#more">更多操作</a><a href="#questions">常见问题</a></nav>
+      <nav class="guide-toc" aria-label="文档目录"><span>本文目录</span><a href="#start">快速开始</a><a href="#workflow">翻译工作流程</a><a href="#features">当前功能</a><a href="#online-ai">在线 AI 配置</a><a href="#checks">检查规则与设置</a><a href="#more">更多操作</a><a href="#questions">常见问题</a></nav>
       <main class="guide-content">
         <section id="start" class="guide-section">
-          <h2>快速开始</h2><p>适用于支持 JavaScript 加载项的 <strong>Windows WPS 表格</strong>。翻译表在本机处理，插件使用表内已有的 AI 建议，不会自动调用在线 AI 翻译。</p>
+          <h2>快速开始</h2><p>适用于支持 JavaScript 加载项的 <strong>Windows WPS 表格</strong>。识别与检查在本机处理；可采用表内已有的 AI 建议，也可自行配置在线 AI，主动为当前条目生成译文。</p>
           <ol class="quick-steps"><li>在<a href="./">安装网页</a>点击安装或更新，完成后重新打开 WPS 表格。</li><li>打开任务表，点击顶部 <strong>翻译助手 → 打开助手</strong>。</li><li>确认任务语言，点击<strong>开始翻译 / 继续翻译</strong>，在目标语言的最终译文列填写。</li><li>完成后运行<strong>交付检查</strong>，用 WPS <strong>保存或另存为</strong>交付文件。</li></ol>
           <div class="guide-note"><strong>两次保存要分清</strong><p>在侧栏输入只是草稿；点击“写入并下一条”才进入工作簿。助手写入后，还需要用 WPS 保存到文件。</p></div>
         </section>
@@ -34,11 +34,26 @@
             <tr><th scope="row">识别翻译表与语言</th><td>自动识别常见翻译表和多字段配置表；特殊表头可在“更多 → 识别设置”指定列。</td></tr>
             <tr><th scope="row">原文变化与旧译参考</th><td>查看新旧原文差异，展开旧译文，按需载入草稿。</td></tr>
             <tr><th scope="row">表内 AI 建议</th><td>直接采用并写入，或先载入草稿修改。</td></tr>
+            <tr><th scope="row">在线 AI 翻译</th><td>配置 LiteLLM、统一网关或厂商官方 Key，为当前原文生成建议，核对后载入草稿。</td></tr>
             <tr><th scope="row">问题检查与定位</th><td>检查占位符、标签、换行标记及同一工作表内的重复完整 Key。</td></tr>
             <tr><th scope="row">进度与查找</th><td>查看已填写、空译文和问题数量；筛选、搜索后按当前范围继续处理。</td></tr>
             <tr><th scope="row">复制完整 Key</th><td>展开“条目信息”，点击完整 Key 右侧的“复制”。</td></tr>
             <tr><th scope="row">写入与撤销</th><td>写入前核对条目，避免改表后用旧位置覆盖；可撤销本会话最近一次助手写入。</td></tr>
           </tbody></table></div>
+        </section>
+        <section id="online-ai" class="guide-section">
+          <h2>在线 AI 配置</h2>
+          <p>打开<strong>更多 → AI 设置</strong>，选择服务商或网关，填写 Key，点击<strong>读取模型列表 / 测试连接</strong>，再选择或输入模型名称。地址、模型和开关会保存在本机；Key 与本机连接码只保留在本次窗格会话，关闭后需要重新填写。</p>
+          <h3>统一网关或厂商官方 Key</h3>
+          <p><strong>LiteLLM：</strong>填写管理员提供的 API 基础地址（例如 <code>https://ai.example.com/v1</code>）和虚拟 Key，使用网关开放的模型别名。网关管理上游厂商凭据，一个虚拟 Key 能使用哪些模型由管理员决定。</p>
+          <p><strong>OpenRouter：</strong>选择后会预填地址，用对应 Key 读取模型。<strong>OpenAI、Anthropic、Gemini、DeepSeek、通义千问：</strong>使用各自服务的官方 Key；通义千问需选择 Key 对应的地域。其他服务可选择“其他 OpenAI 兼容服务”，填入完整基础地址。切换服务或修改地址会清空手填 Key，防止误发给另一个服务。</p>
+          <h3>勾选使用环境变量 LITELLM_API_KEY</h3>
+          <p>仅 LiteLLM 提供此选项，默认不勾选。勾选后禁用手填 Key，由<strong>本机连接服务</strong>读取它所在进程的 <code>LITELLM_API_KEY</code>。真实 Key 不返回窗格；取消勾选立即恢复手填 Key。这个可选模式需本机安装 Node.js 22.12 或更新版本，基础翻译、网页安装及手填 Key 模式不需要 Node.js。</p>
+          <ol><li>由管理员或开发人员<a href="./ai-local-bridge.mjs" download="ai-local-bridge.mjs">下载本机连接服务脚本</a>。在启动服务的环境中设置 <code>LITELLM_API_KEY</code>，值为该网关的虚拟 Key。不要把真实 Key 写入插件、文档或表格。</li><li>在脚本所在目录运行以下命令，替换网关地址：<pre class="guide-code"><code>node ./ai-local-bridge.mjs --base-url https://ai.example.com/v1</code></pre>服务只监听本机 <code>127.0.0.1:3892</code>，并固定该上游网关。</li><li>在插件里选择 LiteLLM，填写相同网关地址，勾选<strong>使用环境变量 LITELLM_API_KEY</strong>，将服务启动时显示的<strong>本机连接码</strong>填到对应输入框，读取并选择模型。</li></ol>
+          <p>服务需在使用期间保持运行。修改环境变量后重启服务；服务重启会更换连接码，需要在插件内重新填写。若变量只在某个终端临时设置，就应在同一个终端启动服务。插件取不到变量时会明确报错，不自动使用其他 Key。</p>
+          <h3>生成、核对、写入</h3>
+          <p>选中条目，展开<strong>在线 AI 翻译</strong>，点击<strong>生成当前条目译文</strong>。仅发送当前原文与目标语言，不发送工作簿文件、路径、条目 Key、旧译文或草稿。结果显示格式问题，点击<strong>载入草稿</strong>后可编辑，再按原有流程写入并保存。切换条目、改变原文或编辑草稿会使旧建议失效；生成可取消，不自动重试。</p>
+          <div class="guide-note"><strong>连接与费用</strong><p>请求发送到你配置的服务，费用和数据处理规则由该服务决定。直连模式需服务允许 WPS 窗格的跨域（CORS）访问；SDK 无法绕过跨域限制。模型列表接口不可用时，可以向管理员确认模型别名后手填。Key 不保存在工作簿、插件包或网站中。</p></div>
         </section>
         <section id="checks" class="guide-section">
           <h2>检查规则与设置</h2>

@@ -1,0 +1,3 @@
+.ai-setting{display:flex;flex-direction:column;gap:5px;margin-top:11px;color:#536d5d}.ai-setting input,.ai-setting select{width:100%}.ai-env-check{display:flex;align-items:flex-start;gap:7px;margin-top:12px;line-height:1.6}.ai-env-check input{flex:0 0 auto;margin-top:3px;accent-color:#236e4e}#ai-settings code{overflow-wrap:anywhere}#ai-env-details{background:#f1f5f2;padding:9px;border-radius:6px;margin-top:8px}#online-ai-result-box{margin-top:10px}#online-ai-status{min-height:1em}#online-ai-box{border-top:1px solid #e3ebe4;padding-top:10px}
+
+#ai-env-details a{color:#256c4b}

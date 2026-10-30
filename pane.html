@@ -26,6 +26,7 @@
         <div id="current-errors" class="problem-text" role="status" aria-live="polite"></div><p id="draft-status" class="muted"></p>
         <button id="discard-draft" class="text-button" hidden>丢弃本条草稿，重新载入当前译文</button>
         <details id="ai-box" open><summary>表内 AI 建议</summary><pre id="ai" class="ai-text"></pre><div id="ai-errors" class="problem-text"></div><div class="write-actions"><button id="adopt" class="primary" disabled>采用 AI 并写入</button><button id="load-ai" class="text-button" disabled>先载入草稿</button></div><p class="muted">直接采用会填写当前译文，仍需用 WPS 保存。建议来自表内，格式通过仍需核对含义和术语。</p></details>
+        <details id="online-ai-box"><summary>在线 AI 翻译</summary><p class="muted">点击生成时，仅将当前原文和目标语言发送到设置的 AI 服务，可能产生费用。请先在“更多 → AI 设置”配置。</p><div class="write-actions"><button id="online-ai-generate" disabled>生成当前条目译文</button><button id="online-ai-cancel" class="text-button" hidden>取消请求</button></div><p id="online-ai-status" class="muted" role="status" aria-live="polite"></p><div id="online-ai-result-box" hidden><pre id="online-ai-result" class="ai-text"></pre><p id="online-ai-errors" class="problem-text"></p><button id="online-ai-load" class="text-button" disabled>载入草稿</button></div></details>
         <div class="write-actions"><button id="commit" class="primary" disabled>写入并下一条</button><button id="skip" disabled>暂跳过</button></div>
         <details id="current-details"><summary>条目信息</summary><p id="current-location" class="muted"></p><div class="key-row"><p id="current-key" class="key"></p><button id="copy-key" class="text-button" aria-label="复制完整 Key" disabled>复制</button></div><p id="copy-key-status" class="muted" role="status" aria-live="polite" hidden></p></details>
       </div>
@@ -45,6 +46,16 @@
   <details id="diagnostic-box" hidden><summary id="diagnostic-count">识别提示</summary><ul id="diagnostics"></ul></details>
   <details id="more-box" class="card"><summary>更多</summary>
     <button id="scan" class="full">重新识别工作簿</button><button id="undo" class="text-button full" disabled>撤销最近一次助手写入</button>
+    <details id="ai-settings"><summary>AI 设置</summary>
+      <label class="ai-setting" for="ai-provider">服务商 / 网关<select id="ai-provider"></select></label>
+      <label class="ai-setting" for="ai-base-url">API 基础地址<input id="ai-base-url" type="url" placeholder="例如 https://ai.example.com/v1" autocomplete="off" spellcheck="false"></label>
+      <label id="ai-key-row" class="ai-setting" for="ai-key">AI Key / LiteLLM 虚拟 Key<input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="仅本次窗格会话保留"></label>
+      <label id="ai-env-setting" class="ai-env-check"><input id="ai-use-env" type="checkbox"><span>使用环境变量 <code>LITELLM_API_KEY</code></span></label>
+      <div id="ai-env-details" hidden><p class="muted">需启动本机环境变量连接服务。它读取启动进程的 LITELLM_API_KEY 并转发到固定网关，不向窗格返回真实 Key。修改环境变量后请重启服务。</p><label class="ai-setting" for="ai-bridge-token">本机连接码<input id="ai-bridge-token" type="password" autocomplete="off" spellcheck="false" placeholder="连接服务启动时显示"></label><p class="muted"><a href="https://ksuperliu.github.io/wps-translation-assistant/guide.html#online-ai" target="_blank" rel="noopener noreferrer">查看本机连接服务使用方法 ↗</a></p></div>
+      <label class="ai-setting" for="ai-model">模型名称<input id="ai-model" list="ai-model-options" placeholder="读取后选择，或手填网关模型别名" autocomplete="off" spellcheck="false"><datalist id="ai-model-options"></datalist></label>
+      <button id="ai-models" class="text-button">读取模型列表 / 测试连接</button><button id="ai-settings-cancel" class="text-button" hidden>取消请求</button><p id="ai-connection-status" class="muted" role="status" aria-live="polite"></p><button id="ai-clear-key" class="text-button full">清除本次会话的 Key 与连接码</button>
+      <p id="ai-settings-status" class="muted" role="status">地址、模型和勾选状态保存在本机；Key 和连接码不保存到表格或本机配置。</p><p class="muted">官方 Key 仅用于对应服务；LiteLLM 使用网关虚拟 Key 与网关模型别名。直连需服务允许 WPS 网页跨域访问，读取列表失败时可手填模型。切换服务或修改地址会清空手填 Key。</p>
+    </details>
     <details id="validation-settings"><summary>检查设置</summary><label class="check-setting"><input id="check-newlines" type="checkbox" checked>检查 <code>\n</code> 换行标记</label><p class="muted">默认开启，检查反斜杠加 n 的新增和遗漏。关闭后忽略其数量差异，其他占位符和标签仍检查。</p><p id="validation-settings-status" class="muted" role="status" aria-live="polite" hidden></p></details>
     <details><summary>批量填充 AI 建议</summary><p class="muted">仅填充当前任务列表筛选内的空白译文。填充后需要逐条复核，不能视为人工审校完成。</p><button id="batch" class="full" disabled>用格式合格的 AI 建议填充空白</button></details>
     <details id="mapping-box" class="mapping-box"><summary>识别设置 · 特殊表头</summary><p class="muted">自动识别有歧义时指定列。配置按表头结构复用，不保存译文。</p>
@@ -56,5 +67,5 @@
     </details>
     <section class="update-panel" aria-label="版本与更新"><button id="check-updates" class="text-button">检查更新</button><p id="update-status" role="status" aria-live="polite" hidden></p><button id="open-update-site" class="text-button" hidden>打开更新网站 ↗</button><p id="update-link-fallback" hidden><a href="https://ksuperliu.github.io/wps-translation-assistant/" target="_blank" rel="noopener noreferrer">打开安装与更新网站</a></p></section>
   </details>
-  <footer>翻译内容在本机处理。草稿仅在本次窗格会话保留；写入后请用 WPS 保存。</footer>
+  <footer>识别与检查在本机处理；主动生成在线 AI 译文时发送当前原文和目标语言到所配服务。草稿仅在本次窗格会话保留；写入后请用 WPS 保存。</footer>
 </main></body></html>

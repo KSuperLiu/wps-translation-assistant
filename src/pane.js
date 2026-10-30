@@ -3,6 +3,8 @@ import "./mapping.css";
 import "./updates.css";
 import "./clipboard.css";
 import "./validation-settings.css";
+import "./ai.css";
+import { setupOnlineAI } from "./ai-ui.js";
 import { WpsHost } from "./wps-host.js";
 import { discoverLanguages, parseWorkbook, revalidateUnits, selectedUnit, adoptionProblem, sameReviewedUnit, columnName } from "./model.js";
 import { applyDraft, applyCurrentSuggestion, applySuggestions, undoSuggestions } from "./operations.js";
@@ -25,6 +27,7 @@ const state = { snapshot: null, model: { units: [], diagnostics: [] }, language:
   validationOptions: { checkNewlines: true } };
 const pageSize = 30, commandKey = "WpsTranslationAssistant.command";
 let copyRequest = 0;
+let onlineAI = null;
 function message(value, kind = "") { $("message").textContent = value; $("message").className = kind; }
 function current() { return state.model.units.find(u => u.id === state.selected) ?? null; }
 function scope() { return { sheet: $("sheet").value, query: $("search").value }; }
@@ -52,6 +55,7 @@ function busy(value) {
   updateActions();
 }
 function updateActions() {
+  onlineAI?.refresh();
   const u = current(), draft = draftFor(u), stale = draft && !sameReviewedUnit(draft.reviewed, u);
   $("begin").disabled = state.busy || !state.language || !state.model.units.length;
   $("adopt").disabled = state.busy || !!adoptionProblem(u) || stale;
@@ -404,6 +408,12 @@ const validationSettings = setupValidationSettings({ getStorage: () => window.lo
   }
 } });
 state.validationOptions = validationSettings.value;
+onlineAI = setupOnlineAI({ getStorage: () => window.localStorage, getContext: () => {
+  let key = ""; try { key = host.bookKey(); } catch { /* 当前没有工作簿。 */ }
+  const u = current();
+  return { bookKey: key, unit: key && key === state.snapshot?.bookKey ? u : null,
+    draft: draftFor(u)?.value ?? "", busy: state.busy || state.fullRefresh || state.dirty.has(u?.sheet) };
+}, loadDraft: value => { rememberDraft(value); $("target").value = value; renderDraftStatus(); updateActions(); } });
 const mapping = setupMapping({ state, getStorage: () => window.localStorage, message, changed: () => { if (!state.snapshot) return; state.journal = []; state.journals.delete(state.snapshot.bookKey); state.page = 0; state.selected = null; updateLanguages(discoverLanguages(state.snapshot.sheets, state.profiles)); rebuild(); } });
 const listeners = [];
 function listen(event, callback) { try { host.app.ApiEvent.AddApiEventListener(event, callback); listeners.push(event); } catch { message("部分自动检查事件不可用，修改后请在“更多”中重新识别。", "error"); } }
@@ -415,7 +425,7 @@ if (host.app) {
   for (const event of ["WorkbookNewSheet", "SheetBeforeDelete"]) listen(event, () => schedule(true));
   listen("SheetActivate", () => { activation(); followSelection(); });
 }
-window.addEventListener("beforeunload", () => { clearTimeout(state.timer); for (const event of listeners) { try { host.app.ApiEvent.RemoveApiEventListener(event); } catch { /* WPS 自动释放。 */ } } });
+window.addEventListener("beforeunload", () => { onlineAI?.dispose(); clearTimeout(state.timer); for (const event of listeners) { try { host.app.ApiEvent.RemoveApiEventListener(event); } catch { /* WPS 自动释放。 */ } } });
 async function command(value) {
   let data; try { data = JSON.parse(value); } catch { return; }
   if (!data?.id || state.lastCommand === data.id) return;
